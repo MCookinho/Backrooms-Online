@@ -289,7 +289,9 @@ export class Level0 {
       const wg = new THREE.BoxGeometry(w, ROOM_H - FOOTER_H, d);
       wg.translate(px, FOOTER_H / 2 + (ROOM_H - FOOTER_H) / 2, pz);
       (isX ? wallGeomsX : wallGeomsZ).push(wg);
-      const fg = new THREE.BoxGeometry(w + d, FOOTER_H, d + 0.02);
+      const fg = isX
+        ? new THREE.BoxGeometry(w + d, FOOTER_H, d + 0.02)
+        : new THREE.BoxGeometry(w + 0.02, FOOTER_H, d + w);
       fg.translate(px, FOOTER_H / 2, pz);
       (isX ? footerGeomsX : footerGeomsZ).push(fg);
     };
