@@ -76,6 +76,12 @@ const FURNITURE_MODEL_MAP = {
   coffee_machine: 'coffee_machine.glb',
 };
 
+const WALL_DECO_MODEL_MAP = {
+  outlet: 'outlet.glb',
+  picture_frame: 'picture_frame.glb',
+  wall_painting: 'wall_painting.glb',
+};
+
 function _makeMat(name, opts = {}) {
   const m = new THREE.MeshStandardMaterial({
     roughness: 0.85, metalness: 0, ...opts,
@@ -443,6 +449,16 @@ export class Level0 {
     loadTex('fixtureDiff', 'backrooms-level-0/backrooms-ceiling-light-diffuse.png', 1, 1);
     loadTex('fixtureEmit', 'backrooms-level-0/backrooms-ceiling-light-emission.png', 1, 1);
 
+    const loadDecalTex = (key, path) => {
+      const t = this.textureLoader.load(`${base}/assets/textures/decals/${path}`);
+      t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+      this.textures[key] = t;
+    };
+    loadDecalTex('scratch1', 'scratch_soft_scuff.png');
+    loadDecalTex('scratch2', 'scratch_fine_linear.png');
+    loadDecalTex('scratch3', 'scratch_feathered.png');
+    loadDecalTex('scratch4', 'scratch_soft_feathered.png');
+
     const loadModel = (key, filename) => new Promise(resolve => {
       const loader = new GLTFLoader();
       loader.load(
@@ -461,6 +477,11 @@ export class Level0 {
       if (!seen.has(name)) { seen.add(name); modelPromises.push(loadModel(name, key)); }
     }
     for (const key of Object.values(FURNITURE_MODEL_MAP)) {
+      if (!key.endsWith('.glb')) continue;
+      const name = key.replace('.glb', '');
+      if (!seen.has(name)) { seen.add(name); modelPromises.push(loadModel(name, key)); }
+    }
+    for (const key of Object.values(WALL_DECO_MODEL_MAP)) {
       if (!key.endsWith('.glb')) continue;
       const name = key.replace('.glb', '');
       if (!seen.has(name)) { seen.add(name); modelPromises.push(loadModel(name, key)); }
@@ -708,6 +729,21 @@ export class Level0 {
 
   _buildWallDecorations() {
     const rng = () => Math.random();
+    const scratchKeys = ['scratch1', 'scratch2', 'scratch3', 'scratch4'];
+
+    const scratchDecalMat = (sKey) => {
+      const tex = this.textures[sKey];
+      if (!tex) return null;
+      return new THREE.MeshStandardMaterial({
+        map: tex,
+        transparent: true,
+        depthWrite: false,
+        roughness: 0.85,
+        metalness: 0,
+        color: 0x888888,
+        side: THREE.DoubleSide,
+      });
+    };
 
     for (const { x, z } of this._walkableTiles) {
       const h = this._getHeight(x, z);
@@ -724,119 +760,60 @@ export class Level0 {
 
         const kind = rng();
         if (kind < 0.33) {
-          const outletGroup = new THREE.Group();
+          const model = this.models.outlet;
+          if (!model || model.children.length === 0) return;
+          const clone = model.clone();
           const faceZ = (nz === z * TILE) ? nz + WALL_T / 2 + 0.003 : nz - WALL_T / 2 - 0.003;
           const faceX = (nx === x * TILE) ? nx + WALL_T / 2 + 0.003 : nx - WALL_T / 2 - 0.003;
-          outletGroup.position.set(
+          clone.position.set(
             wallDir === 'z' ? decoX : faceX,
             h + 0.14,
             wallDir === 'z' ? faceZ : decoZ
           );
-
-          const plateMat = _makeMat('outlet', { color: 0xf0ece4, roughness: 0.6, metalness: 0 });
-          const plate = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.068, 0.004), plateMat);
-          outletGroup.add(plate);
-
-          const slotMat = _makeMat('outletSlot', { color: 0x2a2520, roughness: 0.9 });
-          for (const sx of [-0.011, 0.011]) {
-            const slot = new THREE.Mesh(new THREE.BoxGeometry(0.003, 0.020, 0.006), slotMat);
-            slot.position.set(sx, 0.006, 0.001);
-            outletGroup.add(slot);
-          }
-
-          const gndMat = _makeMat('outletGround', { color: 0x2a2520, roughness: 0.9 });
-          const gnd = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.004, 0.006), gndMat);
-          gnd.position.set(0, -0.010, 0.001);
-          outletGroup.add(gnd);
-
-          const screwMat = _makeMat('outletScrew', { color: 0xbbb8b0, roughness: 0.2, metalness: 0.3 });
-          for (const sy of [-0.028, 0.028]) {
-            const screw = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.004, 0.005), screwMat);
-            screw.position.set(0, sy, 0.001);
-            outletGroup.add(screw);
-          }
-
-          if (wallDir === 'x') outletGroup.rotation.y = Math.PI / 2;
-          this.object3d.add(outletGroup);
+          clone.scale.setScalar(0.0038);
+          if (wallDir === 'x') clone.rotation.y = Math.PI / 2;
+          this.object3d.add(clone);
         } else if (kind < 0.66) {
-          const frameStyles = [
-            { color: 0xc8b898, roughness: 0.3, metalness: 0.05 },  // warm wood
-            { color: 0x3a3028, roughness: 0.6, metalness: 0.02 },  // dark wood
-            { color: 0x222222, roughness: 0.7, metalness: 0 },     // black
-            { color: 0xe8e0d8, roughness: 0.5, metalness: 0 },     // white
-            { color: 0x887050, roughness: 0.6, metalness: 0 },     // rustic
-            { color: 0xd4b88a, roughness: 0.2, metalness: 0.15 },  // gold
-          ];
-          const fs = frameStyles[Math.floor(rng() * frameStyles.length)];
-          const frameMat = _makeMat('frame', fs);
-          const portrait = rng() < 0.5;
-          const fw = portrait ? 0.12 + rng() * 0.06 : 0.16 + rng() * 0.12;
-          const fh = portrait ? 0.16 + rng() * 0.10 : 0.10 + rng() * 0.06;
-          const borderW = Math.max(0.015, fw * 0.10);
-          const fy = h + 0.5 + rng() * (wallH - 0.8);
-          const frameGroup = new THREE.Group();
+          const usePainting = rng() < 0.3 && this.models.wall_painting && this.models.wall_painting.children.length > 0;
+          const modelKey = usePainting ? 'wall_painting' : 'picture_frame';
+          const model = this.models[modelKey];
+          if (!model || model.children.length === 0) return;
+          const clone = model.clone();
           const fFaceZ = (nz === z * TILE) ? nz + WALL_T / 2 + 0.003 : nz - WALL_T / 2 - 0.003;
           const fFaceX = (nx === x * TILE) ? nx + WALL_T / 2 + 0.003 : nx - WALL_T / 2 - 0.003;
-          frameGroup.position.set(
+          const fy = h + 0.5 + rng() * (wallH - 0.8);
+          clone.position.set(
             wallDir === 'z' ? decoX : fFaceX,
             fy,
             wallDir === 'z' ? fFaceZ : decoZ
           );
-
-          const hw = fw / 2, hh = fh / 2, bw = borderW;
-          const openW = fw - bw * 2, openH = fh - bw * 2;
-          const fd = 0.008;
-          const framePieces = [
-            [0, hh - bw / 2, fw, bw],
-            [0, -(hh - bw / 2), fw, bw],
-            [-(hw - bw / 2), 0, bw, openH],
-            [hw - bw / 2, 0, bw, openH],
-          ];
-          for (const [fx, fy, fw2, fh2] of framePieces) {
-            const piece = new THREE.Mesh(new THREE.BoxGeometry(fw2, fh2, fd), frameMat);
-            piece.position.set(fx, fy, 0);
-            frameGroup.add(piece);
-          }
-
-          const innerColors = [
-            0xf5f0e8, 0xe8e0d0, 0xd8d0c0, 0xf0ebe0, 0xe0d8cc,
-            0xb8c0b0, 0xc8b8a0, 0xd0c8d0, 0xe8dcd0, 0xa8a898,
-          ];
-          const ic = innerColors[Math.floor(rng() * innerColors.length)];
-          const innerMat = _makeMat('frameInner', { color: ic, roughness: 0.6 });
-          const inner = new THREE.Mesh(new THREE.BoxGeometry(openW, openH, fd * 0.6), innerMat);
-          inner.position.z = -0.001;
-          frameGroup.add(inner);
-
-          if (rng() < 0.25) {
-            const accentMat = _makeMat('frameAccent', {
-              color: innerColors[Math.floor(rng() * innerColors.length)],
-              roughness: 0.5,
-            });
-            const aw = openW * 0.4, ah = openH * 0.2;
-            const accent = new THREE.Mesh(new THREE.BoxGeometry(aw, ah, fd * 0.7), accentMat);
-            accent.position.z = 0.001;
-            frameGroup.add(accent);
-          }
-
-          if (wallDir === 'x') frameGroup.rotation.y = Math.PI / 2;
-          this.object3d.add(frameGroup);
+          const scaleBase = usePainting ? 0.35 : 0.6 + rng() * 0.6;
+          const portrait = rng() < 0.5;
+          clone.scale.set(
+            portrait ? scaleBase * 0.75 : scaleBase,
+            portrait ? scaleBase : scaleBase * 0.75,
+            scaleBase
+          );
+          if (wallDir === 'x') clone.rotation.y = Math.PI / 2;
+          this.object3d.add(clone);
         } else {
-          const scratchMat = _makeMat('scratch', { color: 0x55504a, roughness: 0.6 });
-          const sw = wallDir === 'z' ? 0.002 + rng() * 0.015 : 0.025 + rng() * 0.04;
-          const sh = 0.002 + rng() * 0.004;
-          const sd = wallDir === 'z' ? 0.025 + rng() * 0.04 : 0.002 + rng() * 0.015;
-          const scratch = new THREE.Mesh(new THREE.BoxGeometry(sw, sh, sd), scratchMat);
+          const sKey = scratchKeys[Math.floor(rng() * scratchKeys.length)];
+          const mat = scratchDecalMat(sKey);
+          if (!mat) return;
+          const scratchW = 0.08 + rng() * 0.15;
+          const scratchH = 0.06 + rng() * 0.12;
+          const plane = new THREE.Mesh(new THREE.PlaneGeometry(scratchW, scratchH), mat);
           const sy = h + 0.15 + rng() * (wallH - 0.3);
           const sFaceZ = (nz === z * TILE) ? nz + WALL_T / 2 + 0.002 : nz - WALL_T / 2 - 0.002;
           const sFaceX = (nx === x * TILE) ? nx + WALL_T / 2 + 0.002 : nx - WALL_T / 2 - 0.002;
-          scratch.position.set(
+          plane.position.set(
             wallDir === 'z' ? decoX : sFaceX,
             sy,
             wallDir === 'z' ? sFaceZ : decoZ
           );
-          if (wallDir === 'x') scratch.rotation.y = Math.PI / 2;
-          this.object3d.add(scratch);
+          if (wallDir === 'x') plane.rotation.y = Math.PI / 2;
+          plane.rotation.x = rng() * Math.PI * 2;
+          this.object3d.add(plane);
         }
       };
 
