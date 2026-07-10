@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Backrooms Online</title>
+  <link rel="stylesheet" href="/styles/main.css" />
+</head>
+<body>
+  <div id="controls-hint" class="hidden">
+    <p>WASD - Move | Shift - Run | Space - Jump | E - Interact | I - Inventory | F - Flashlight</p>
+  </div>
+
+  <div id="hud">
+    <div id="health-bar"><div id="health-fill"></div><span id="health-text">100</span></div>
+    <div id="stamina-bar"><div id="stamina-fill"></div><span id="stamina-text">100</span></div>
+    <div id="crosshair">+</div>
+    <div id="interact-prompt"></div>
+    <div id="inventory-panel" class="hidden">
+      <div id="inventory-grid"></div>
+      <div id="inventory-info"></div>
+    </div>
+    <div id="mobile-controls" class="hidden">
+      <div id="move-joystick"></div>
+      <div id="action-buttons">
+        <button id="btn-jump">Jump</button>
+        <button id="btn-interact">Use</button>
+        <button id="btn-crouch">Crouch</button>
+        <button id="btn-run">Run</button>
+      </div>
+    </div>
+  </div>
+
+  <canvas id="game-canvas"></canvas>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
