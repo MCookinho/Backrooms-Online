@@ -771,7 +771,7 @@ export class Level0 {
           const clone = model.clone();
           clone.position.set(posX, h + 0.14, posZ);
           clone.scale.setScalar(0.0038);
-          clone.rotation.y = rotY;
+          clone.rotation.y = rotY + Math.PI;
           this.object3d.add(clone);
         } else if (kind < 0.66) {
           const usePainting = rng() < 0.3 && this.models.wall_painting && this.models.wall_painting.children.length > 0;
@@ -779,16 +779,18 @@ export class Level0 {
           const model = this.models[modelKey];
           if (!model || model.children.length === 0) return;
           const clone = model.clone();
-          const fy = h + 0.5 + rng() * (wallH - 0.8);
-          clone.position.set(posX, fy, posZ);
           const scaleBase = usePainting ? 0.35 : 0.6 + rng() * 0.6;
           const portrait = rng() < 0.5;
+          const hScale = portrait ? scaleBase : scaleBase * 0.75;
+          const modelH = usePainting ? 10.04 : 0.89;
+          const fy = h + 0.3 + rng() * Math.max(0.1, wallH - 0.6 - modelH * hScale);
+          clone.position.set(posX, fy, posZ);
           clone.scale.set(
             portrait ? scaleBase * 0.75 : scaleBase,
-            portrait ? scaleBase : scaleBase * 0.75,
+            hScale,
             scaleBase
           );
-          clone.rotation.y = rotY;
+          clone.rotation.y = rotY + Math.PI;
           this.object3d.add(clone);
         } else {
           const sKey = scratchKeys[Math.floor(rng() * scratchKeys.length)];
