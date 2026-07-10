@@ -30,6 +30,9 @@ export class LevelManager {
     if (typeof level.getWallColliders === 'function') {
       this.player.setWallColliders(level.getWallColliders());
     }
+    if (typeof level.getCollisionGrid === 'function') {
+      this.player.setCollisionGrid(level.getCollisionGrid(), 4);
+    }
 
     return level;
   }
@@ -39,6 +42,9 @@ export class LevelManager {
       this.currentLevel.update(delta, this.player);
       if (typeof this.currentLevel.getWallColliders === 'function') {
         this.player.setWallColliders(this.currentLevel.getWallColliders());
+      }
+      if (typeof this.currentLevel.getCollisionGrid === 'function') {
+        this.player.setCollisionGrid(this.currentLevel.getCollisionGrid(), 4);
       }
     }
   }

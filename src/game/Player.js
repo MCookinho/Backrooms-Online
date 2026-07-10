@@ -51,6 +51,8 @@ export class Player {
 
     this.raycaster = new THREE.Raycaster();
     this.wallBoxes = [];
+    this.collisionGrid = null;
+    this.collisionTileSize = 4;
     this.flashlightOn = false;
     this.flashlight = null;
 
@@ -87,6 +89,11 @@ export class Player {
 
   setWallColliders(boxes) {
     this.wallBoxes = boxes;
+  }
+
+  setCollisionGrid(grid, tileSize) {
+    this.collisionGrid = grid;
+    this.collisionTileSize = tileSize || 4;
   }
 
   _setupCollider() {
@@ -231,75 +238,81 @@ export class Player {
     }
   }
 
+  _collidesWithGrid(wx, wz) {
+    if (!this.collisionGrid) return false;
+    const r = PLAYER_RADIUS;
+    const tile = this.collisionTileSize;
+    const grid = this.collisionGrid;
+    const h = grid.length;
+    const w = grid[0].length;
+
+    const minX = Math.floor((wx - r) / tile);
+    const maxX = Math.floor((wx + r) / tile);
+    const minZ = Math.floor((wz - r) / tile);
+    const maxZ = Math.floor((wz + r) / tile);
+
+    for (let gz = minZ; gz <= maxZ; gz++) {
+      for (let gx = minX; gx <= maxX; gx++) {
+        if (gz < 0 || gz >= h || gx < 0 || gx >= w) return true;
+        if (grid[gz][gx] === ' ') {
+          const cMinX = gx * tile;
+          const cMaxX = (gx + 1) * tile;
+          const cMinZ = gz * tile;
+          const cMaxZ = (gz + 1) * tile;
+          const closestX = Math.max(cMinX, Math.min(wx, cMaxX));
+          const closestZ = Math.max(cMinZ, Math.min(wz, cMaxZ));
+          const dx = wx - closestX;
+          const dz = wz - closestZ;
+          if (dx * dx + dz * dz < r * r) return true;
+        }
+      }
+    }
+    return false;
+  }
+
   _handlePhysics(delta) {
     const speed = this.isCrouching ? CROUCH_SPEED : (this.isRunning ? RUN_SPEED : WALK_SPEED);
     const moveSpeed = this.direction.lengthSq() > 0.01 ? speed : 0;
 
     this.velocity.x = this.direction.x * moveSpeed;
     this.velocity.z = this.direction.z * moveSpeed;
-
     this.velocity.y += GRAVITY * delta;
 
     const newPos = this.position.clone();
-    const moveX = this.velocity.x * delta;
-    const moveZ = this.velocity.z * delta;
-    const moveY = this.velocity.y * delta;
+    const dx = this.velocity.x * delta;
+    const dz = this.velocity.z * delta;
 
-    newPos.x += moveX;
-    newPos.z += moveZ;
-    newPos.y += moveY;
-
+    newPos.y += this.velocity.y * delta;
     if (newPos.y <= 0) {
       newPos.y = 0;
       this.velocity.y = 0;
       this.isGrounded = true;
     }
 
-    const testBox = new THREE.Box3(
-      new THREE.Vector3(
-        newPos.x - PLAYER_RADIUS,
-        newPos.y,
-        newPos.z - PLAYER_RADIUS
-      ),
-      new THREE.Vector3(
-        newPos.x + PLAYER_RADIUS,
-        newPos.y + this.cameraHeight,
-        newPos.z + PLAYER_RADIUS
-      )
-    );
-
-    let collided = false;
-    for (const wallBox of this.wallBoxes) {
-      if (testBox.intersectsBox(wallBox)) {
-        collided = true;
-        break;
+    if (this.collisionGrid) {
+      if (!this._collidesWithGrid(newPos.x + dx, newPos.z + dz)) {
+        newPos.x += dx;
+        newPos.z += dz;
+      } else if (!this._collidesWithGrid(newPos.x + dx, newPos.z)) {
+        newPos.x += dx;
+      } else if (!this._collidesWithGrid(newPos.x, newPos.z + dz)) {
+        newPos.z += dz;
       }
-    }
+    } else {
+      newPos.x += dx;
+      newPos.z += dz;
 
-    if (collided) {
-      const testX = new THREE.Box3(
-        new THREE.Vector3(newPos.x - PLAYER_RADIUS, newPos.y, this.position.z - PLAYER_RADIUS),
-        new THREE.Vector3(newPos.x + PLAYER_RADIUS, newPos.y + this.cameraHeight, this.position.z + PLAYER_RADIUS)
-      );
-      let collidedX = false;
-      for (const wallBox of this.wallBoxes) {
-        if (testX.intersectsBox(wallBox)) { collidedX = true; break; }
-      }
-      if (!collidedX) {
-        newPos.z = this.position.z;
-      } else {
-        newPos.x = this.position.x;
-      }
-
-      const finalTest = new THREE.Box3(
+      const testBox = new THREE.Box3(
         new THREE.Vector3(newPos.x - PLAYER_RADIUS, newPos.y, newPos.z - PLAYER_RADIUS),
         new THREE.Vector3(newPos.x + PLAYER_RADIUS, newPos.y + this.cameraHeight, newPos.z + PLAYER_RADIUS)
       );
-      let stillCollides = false;
+
+      let collided = false;
       for (const wallBox of this.wallBoxes) {
-        if (finalTest.intersectsBox(wallBox)) { stillCollides = true; break; }
+        if (testBox.intersectsBox(wallBox)) { collided = true; break; }
       }
-      if (stillCollides) {
+
+      if (collided) {
         newPos.x = this.position.x;
         newPos.z = this.position.z;
       }

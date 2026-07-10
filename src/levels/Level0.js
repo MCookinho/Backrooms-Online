@@ -4,68 +4,173 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 const TILE = 4;
 const ROOM_H = 3.5;
 const WALL_T = 0.15;
+const FOOTER_H = 0.12;
 
-const GW = 60;
-const GH = 30;
+const GW = 80;
+const GH = 60;
 
 const SECTORS = [
-  [22, 11, 4, 3, 'spawn'],
-  [5, 13, 48, 1, 'hall'],
-  [3, 13, 2, 1, 'hall'],
-  [23, 6, 1, 7, 'hall'],
-  [22, 4, 3, 2, 'room'],
-  [30, 7, 1, 6, 'hall'],
-  [29, 5, 3, 2, 'room'],
-  [13, 7, 1, 6, 'hall'],
-  [12, 5, 3, 2, 'room'],
-  [23, 14, 1, 10, 'hall'],
-  [22, 24, 3, 2, 'room'],
-  [30, 14, 1, 8, 'hall'],
-  [29, 22, 3, 2, 'room'],
-  [13, 14, 1, 8, 'hall'],
-  [12, 22, 3, 2, 'room'],
-  [47, 13, 6, 1, 'hall'],
-  [50, 10, 3, 3, 'room'],
-  [53, 12, 3, 3, 'exit'],
-  [17, 9, 1, 4, 'hall'],
-  [17, 14, 1, 4, 'hall'],
-  [1, 12, 2, 3, 'room'],
-  [42, 3, 3, 3, 'room'],
-  [43, 6, 1, 3, 'hall'],
-  [37, 7, 1, 6, 'hall'],
-  [37, 6, 1, 1, 'hall'],
-  [37, 5, 2, 1, 'room'],
-  [38, 14, 1, 5, 'hall'],
-  [37, 19, 3, 2, 'room'],
-  [7, 15, 1, 3, 'hall'],
-  [7, 14, 1, 1, 'hall'],
-  [6, 18, 3, 2, 'room'],
-  [43, 9, 1, 4, 'hall'],
+  // === TOP EDGE CORRIDOR (full width) ===
+  [0, 0, GW, 2, 'hall'],
+  [0, 58, GW, 2, 'hall'],
+
+  // === ZONE 1: SPAWN COMPLEX (col 4-18, row 2-18) ===
+  [4, 2, 15, 17, 'spawn'],
+  // Internal divisions within spawn
+  [4, 2, 3, 17, 'hall'],
+  [16, 2, 3, 17, 'hall'],
+
+  // === ZONE 2: THE GREAT HUB (col 22-54, row 2-18) ===
+  [22, 2, 33, 17, 'room'],
+  // Hub columns as void
+  [26, 5, 2, 2, ' '],
+  [30, 5, 2, 2, ' '],
+  [34, 5, 2, 2, ' '],
+  [38, 5, 2, 2, ' '],
+  [42, 5, 2, 2, ' '],
+  [46, 5, 2, 2, ' '],
+  [50, 5, 2, 2, ' '],
+  [26, 10, 2, 2, ' '],
+  [30, 10, 2, 2, ' '],
+  [34, 10, 2, 2, ' '],
+  [38, 10, 2, 2, ' '],
+  [42, 10, 2, 2, ' '],
+  [46, 10, 2, 2, ' '],
+  [50, 10, 2, 2, ' '],
+  [26, 15, 2, 2, ' '],
+  [30, 15, 2, 2, ' '],
+  [34, 15, 2, 2, ' '],
+  [38, 15, 2, 2, ' '],
+  [42, 15, 2, 2, ' '],
+  [46, 15, 2, 2, ' '],
+  [50, 15, 2, 2, ' '],
+
+  // === ZONE 3: EAST WING (col 58-77, row 2-18) ===
+  [58, 2, 20, 17, 'room'],
+
+  // === ZONE 4: MAZE (col 4-18, row 22-38) ===
+  [4, 22, 6, 5, 'room'], [12, 22, 5, 5, 'room'],
+  [4, 29, 6, 5, 'room'], [12, 29, 5, 5, 'room'],
+  [4, 36, 6, 4, 'room'], [12, 36, 5, 4, 'room'],
+  [10, 22, 2, 5, 'hall'],
+  [10, 29, 2, 5, 'hall'],
+  [10, 36, 2, 4, 'hall'],
+  [4, 27, 6, 2, 'hall'],
+  [12, 27, 5, 2, 'hall'],
+  [4, 34, 6, 2, 'hall'],
+  [12, 34, 5, 2, 'hall'],
+
+  // === ZONE 5: CENTER COMPLEX (col 22-54, row 22-38) ===
+  // Outer ring
+  [22, 22, 33, 3, 'hall'],
+  [22, 22, 3, 17, 'hall'],
+  [52, 22, 3, 17, 'hall'],
+  [22, 36, 33, 3, 'hall'],
+  // Inner ring
+  [28, 25, 3, 13, 'hall'],
+  [46, 25, 3, 13, 'hall'],
+  [28, 25, 21, 3, 'hall'],
+  [28, 35, 21, 3, 'hall'],
+  // Center room
+  [31, 28, 15, 7, 'room'],
+  // Cross corridors
+  [25, 28, 6, 7, 'hall'],
+  [41, 28, 11, 7, 'hall'],
+  [31, 25, 15, 3, 'hall'],
+  [31, 33, 15, 3, 'hall'],
+
+  // === ZONE 6: EAST MIDDLE (col 58-77, row 22-38) ===
+  [58, 22, 20, 17, 'room'],
+
+  // === ZONE 7: OFFICES (col 4-18, row 42-57) ===
+  [4, 44, 5, 5, 'room'], [12, 44, 5, 5, 'room'],
+  [4, 51, 5, 6, 'room'], [12, 51, 5, 6, 'room'],
+  [9, 44, 3, 5, 'hall'],
+  [9, 51, 3, 6, 'hall'],
+  [4, 49, 5, 2, 'hall'],
+  [12, 49, 5, 2, 'hall'],
+
+  // === ZONE 8: SOUTH ROOMS (col 22-54, row 42-57) ===
+  [22, 42, 16, 16, 'room'],
+  [40, 42, 14, 16, 'room'],
+  [22, 42, 4, 16, 'hall'],
+  [36, 42, 4, 16, 'hall'],
+  [22, 50, 18, 2, 'hall'],
+
+  // === ZONE 9: EXIT WING (col 58-77, row 42-57) ===
+  [58, 42, 20, 16, 'exit'],
+
+  // === CONNECTING CORRIDORS ===
+  // Horizontal: Spawn ↔ Hub
+  [19, 8, 3, 5, 'hall'],
+  // Horizontal: Hub ↔ East
+  [55, 8, 3, 5, 'hall'],
+  // Horizontal: Maze ↔ Center
+  [19, 28, 3, 5, 'hall'],
+  // Horizontal: Center ↔ East Mid
+  [55, 28, 3, 5, 'hall'],
+  // Horizontal: Offices ↔ South
+  [19, 48, 3, 5, 'hall'],
+  // Horizontal: South ↔ Exit
+  [55, 48, 3, 5, 'hall'],
+  // Vertical: Hub ↔ Center
+  [28, 19, 5, 3, 'hall'],
+  [48, 19, 5, 3, 'hall'],
+  // Vertical: Center ↔ South
+  [28, 39, 5, 3, 'hall'],
+  [48, 39, 5, 3, 'hall'],
+  // Vertical: East ↔ East Mid
+  [66, 19, 5, 3, 'hall'],
+  // Vertical: East Mid ↔ Exit
+  [66, 39, 5, 3, 'hall'],
+
+  // === EXTRA ATMOSPHERE ===
+  // Narrow walkways within South Rooms
+  [26, 48, 6, 2, 'hall'],
+  [44, 46, 6, 2, 'hall'],
+  // Dead-end hall in East
+  [62, 2, 4, 16, 'hall'],
+  [62, 22, 4, 16, 'hall'],
+  [70, 2, 4, 16, 'hall'],
+  [70, 22, 4, 16, 'hall'],
+
+  // Center void areas (negative space with walls around them)
+  [38, 46, 2, 2, ' '],
+  [46, 46, 2, 2, ' '],
 ];
 
-const LIGHT_TILES = [
-  [5, 5], [10, 5], [15, 5], [20, 5], [25, 5], [30, 5], [35, 5], [40, 5], [45, 5], [50, 5], [55, 5],
-  [5, 15], [10, 15], [15, 15], [20, 15], [25, 15], [30, 15], [35, 15], [40, 15], [45, 15], [50, 15], [55, 15],
-  [5, 25], [10, 25], [15, 25], [20, 25], [25, 25], [30, 25],
-];
+const LIGHT_TILES = (() => {
+  const tiles = [];
+  for (let z = 2; z < GH - 2; z += 4) {
+    for (let x = 2; x < GW - 2; x += 4) {
+      tiles.push([x, z]);
+    }
+  }
+  return tiles;
+})();
 
 const ITEM_PLACEMENTS = [
-  ['flashlight', 14, 5],
-  ['almond_water', 13, 5],
-  ['almond_water', 30, 5],
-  ['almond_water', 23, 24],
-  ['almond_water', 29, 22],
-  ['batteries', 10, 13],
-  ['batteries', 33, 13],
-  ['batteries', 23, 14],
-  ['lighter', 37, 5],
-  ['lighter', 50, 10],
-  ['medkit', 22, 4],
-  ['medkit', 39, 19],
-  ['note', 12, 22],
-  ['note', 42, 3],
-  ['note', 25, 11],
-  ['key', 51, 13],
+  ['flashlight', 8, 6],
+  ['almond_water', 12, 6],
+  ['almond_water', 10, 10],
+  ['almond_water', 42, 6],
+  ['almond_water', 30, 12],
+  ['batteries', 14, 4],
+  ['batteries', 7, 14],
+  ['batteries', 36, 6],
+  ['batteries', 46, 10],
+  ['lighter', 14, 14],
+  ['lighter', 66, 8],
+  ['medkit', 26, 12],
+  ['medkit', 44, 26],
+  ['medkit', 72, 46],
+  ['note', 16, 24],
+  ['note', 36, 30],
+  ['note', 8, 46],
+  ['note', 68, 28],
+  ['note', 28, 52],
+  ['key', 74, 50],
+  ['key', 50, 54],
 ];
 
 const ITEM_MODEL_MAP = {
@@ -86,7 +191,7 @@ const FURNITURE_MODEL_MAP = {
 
 export class Level0 {
   constructor() {
-    this.spawnPoint = new THREE.Vector3((23 + 0.5) * TILE, 0, (12 + 0.5) * TILE);
+    this.spawnPoint = new THREE.Vector3((10 + 0.5) * TILE, 0, (10 + 0.5) * TILE);
     this.object3d = new THREE.Group();
     this.interactables = [];
     this.props = [];
@@ -99,7 +204,7 @@ export class Level0 {
 
   _initGrid() {
     this.grid = Array.from({ length: GH }, () => Array(GW).fill(' '));
-    for (const [x, z, w, h, type] of SECTORS) {
+    const carve = (x, z, w, h, type) => {
       for (let dz = 0; dz < h; dz++) {
         for (let dx = 0; dx < w; dx++) {
           const cx = x + dx;
@@ -107,10 +212,14 @@ export class Level0 {
           if (cx >= 0 && cx < GW && cz >= 0 && cz < GH) {
             if (type === 'spawn') this.grid[cz][cx] = 'S';
             else if (type === 'exit') this.grid[cz][cx] = 'E';
+            else if (type === ' ') this.grid[cz][cx] = ' ';
             else this.grid[cz][cx] = type === 'hall' ? '.' : 'r';
           }
         }
       }
+    };
+    for (const [x, z, w, h, type] of SECTORS) {
+      carve(x, z, w, h, type);
     }
   }
 
@@ -119,8 +228,22 @@ export class Level0 {
     scene.add(this.object3d);
     this._initGrid();
     this.textureLoader = new THREE.TextureLoader();
+
+    this.spawnPoint = this._findSpawnPoint();
+
     await this._loadAssets();
     this._buildLevel();
+  }
+
+  _findSpawnPoint() {
+    for (let z = 0; z < GH; z++) {
+      for (let x = 0; x < GW; x++) {
+        if (this.grid[z][x] === 'S') {
+          return new THREE.Vector3((x + 0.5) * TILE, 0, (z + 0.5) * TILE);
+        }
+      }
+    }
+    return new THREE.Vector3(5 * TILE, 0, 5 * TILE);
   }
 
   async _loadAssets() {
@@ -133,9 +256,9 @@ export class Level0 {
       this.textures[key] = t;
     };
 
-    loadTex('carpetDiff', 'assetpack/carpet016_2k_png_color_yellowed.jpg', 12, 12);
-    loadTex('carpetNorm', 'assetpack/carpet016_2k_png_normalgl.jpg', 12, 12);
-    loadTex('carpetRough', 'assetpack/carpet016_2k_png_roughness.jpg', 12, 12);
+    loadTex('carpetDiff', 'assetpack/carpet016_2k_png_color_yellowed.jpg', 6, 6);
+    loadTex('carpetNorm', 'assetpack/carpet016_2k_png_normalgl.jpg', 6, 6);
+    loadTex('carpetRough', 'assetpack/carpet016_2k_png_roughness.jpg', 6, 6);
     loadTex('wallDiff', 'assetpack/backroom_wallpaper_texture___yellowed_loopable.jpg', 2, 2);
     loadTex('wallNor', 'assetpack/wallpaper002a_2k_png_normalgl.jpg', 2, 2);
     loadTex('wallRough', 'assetpack/wallpaper002a_2k_png_roughness.jpg', 2, 2);
@@ -196,6 +319,7 @@ export class Level0 {
     this._createProps();
     this._createItems();
     this._createExit();
+    this._createWallStains();
   }
 
   _isWalkable(x, z) {
@@ -212,13 +336,12 @@ export class Level0 {
       metalness: 0,
     });
 
+    const meshGeom = new THREE.PlaneGeometry(TILE, TILE);
+
     for (let z = 0; z < GH; z++) {
       for (let x = 0; x < GW; x++) {
         if (!this._isWalkable(x, z)) continue;
-        const floor = new THREE.Mesh(
-          new THREE.PlaneGeometry(TILE, TILE),
-          floorMat
-        );
+        const floor = new THREE.Mesh(meshGeom, floorMat);
         floor.rotation.x = -Math.PI / 2;
         floor.position.set(x * TILE + TILE / 2, 0, z * TILE + TILE / 2);
         floor.receiveShadow = true;
@@ -236,13 +359,12 @@ export class Level0 {
       color: 0xeee8e0,
     });
 
+    const meshGeom = new THREE.PlaneGeometry(TILE, TILE);
+
     for (let z = 0; z < GH; z++) {
       for (let x = 0; x < GW; x++) {
         if (!this._isWalkable(x, z)) continue;
-        const ceil = new THREE.Mesh(
-          new THREE.PlaneGeometry(TILE, TILE),
-          ceilMat
-        );
+        const ceil = new THREE.Mesh(meshGeom, ceilMat);
         ceil.rotation.x = Math.PI / 2;
         ceil.position.set(x * TILE + TILE / 2, ROOM_H, z * TILE + TILE / 2);
         this.object3d.add(ceil);
@@ -266,39 +388,34 @@ export class Level0 {
       color: 0x887755,
     });
 
-    const footerH = 0.12;
-
     const addWall = (px, py, pz, w, h, d) => {
-      const group = new THREE.Group();
+      const wall = new THREE.Mesh(new THREE.BoxGeometry(w, h - FOOTER_H, d), wallMat);
+      wall.position.set(px, py + FOOTER_H / 2 + (h - FOOTER_H) / 2, pz);
+      this.object3d.add(wall);
 
-      const wall = new THREE.Mesh(new THREE.BoxGeometry(w, h - footerH, d), wallMat);
-      wall.position.y = footerH / 2 + (h - footerH) / 2;
-      group.add(wall);
-
-      const footer = new THREE.Mesh(new THREE.BoxGeometry(w + d, footerH, d + 0.02), footerMat);
-      footer.position.y = footerH / 2;
-      group.add(footer);
-
-      group.position.set(px, py, pz);
-      this.object3d.add(group);
-      this.wallBoxes.push(new THREE.Box3().setFromObject(group));
+      const footer = new THREE.Mesh(new THREE.BoxGeometry(w + d, FOOTER_H, d + 0.02), footerMat);
+      footer.position.set(px, py + FOOTER_H / 2, pz);
+      this.object3d.add(footer);
     };
 
     for (let z = 0; z < GH; z++) {
       for (let x = 0; x < GW; x++) {
         if (!this._isWalkable(x, z)) continue;
 
+        const cx = x * TILE + TILE / 2;
+        const cz = z * TILE + TILE / 2;
+
         if (z === 0 || !this._isWalkable(x, z - 1)) {
-          addWall(x * TILE + TILE / 2, 0, z * TILE, TILE, ROOM_H, WALL_T);
+          addWall(cx, 0, z * TILE, TILE, ROOM_H, WALL_T);
         }
         if (z === GH - 1 || !this._isWalkable(x, z + 1)) {
-          addWall(x * TILE + TILE / 2, 0, z * TILE + TILE, TILE, ROOM_H, WALL_T);
+          addWall(cx, 0, z * TILE + TILE, TILE, ROOM_H, WALL_T);
         }
         if (x === 0 || !this._isWalkable(x - 1, z)) {
-          addWall(x * TILE, 0, z * TILE + TILE / 2, WALL_T, ROOM_H, TILE);
+          addWall(x * TILE, 0, cz, WALL_T, ROOM_H, TILE);
         }
         if (x === GW - 1 || !this._isWalkable(x + 1, z)) {
-          addWall(x * TILE + TILE, 0, z * TILE + TILE / 2, WALL_T, ROOM_H, TILE);
+          addWall(x * TILE + TILE, 0, cz, WALL_T, ROOM_H, TILE);
         }
       }
     }
@@ -308,45 +425,47 @@ export class Level0 {
     const ambient = new THREE.AmbientLight(0xffddbb, 1.2);
     this.object3d.add(ambient);
 
-    const buzz = [0.4, 0.7, 0.5, 0.9, 0.3, 0.8, 0.6, 0.75, 0.45, 0.85, 0.55, 0.65, 0.95];
+    const buzz = [0.3, 0.6, 0.45, 0.8, 0.35, 0.75, 0.5, 0.9, 0.4, 0.7, 0.55, 0.85, 0.65];
     let bi = 0;
 
-    for (const [gx, gz] of LIGHT_TILES) {
-      if (!this._isWalkable(gx, gz)) continue;
-      const cx = gx * TILE + TILE / 2;
-      const cz = gz * TILE + TILE / 2;
+    const fixtureMat = new THREE.MeshStandardMaterial({
+      map: this.textures.ceilDiff,
+      normalMap: this.textures.ceilNor,
+      roughnessMap: this.textures.ceilRough,
+      emissiveMap: this.textures.ceilEmit,
+      emissive: 0xffffff,
+      emissiveIntensity: 0.5,
+      roughness: 0.7,
+      metalness: 0.1,
+    });
+    const glowMat = new THREE.MeshStandardMaterial({
+      color: 0xffffcc,
+      emissive: 0xffffaa,
+      emissiveIntensity: 0.25,
+      transparent: true,
+      opacity: 0.15,
+    });
 
-      const fixtureMat = new THREE.MeshStandardMaterial({
-        map: this.textures.ceilDiff,
-        normalMap: this.textures.ceilNor,
-        roughnessMap: this.textures.ceilRough,
-        emissiveMap: this.textures.ceilEmit,
-        emissive: 0xffffff,
-        emissiveIntensity: 0.6,
-        roughness: 0.7,
-        metalness: 0.1,
-      });
+    for (let z = 2; z < GH - 1; z += 4) {
+      for (let x = 2; x < GW - 1; x += 4) {
+        if (!this._isWalkable(x, z)) continue;
+        const cx = x * TILE + TILE / 2;
+        const cz = z * TILE + TILE / 2;
 
-      const fixture = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.05, 0.25), fixtureMat);
-      fixture.position.set(cx, ROOM_H - 0.025, cz);
-      this.object3d.add(fixture);
+        const fixture = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.05, 0.25), fixtureMat);
+        fixture.position.set(cx, ROOM_H - 0.025, cz);
+        this.object3d.add(fixture);
 
-      const glowMat = new THREE.MeshStandardMaterial({
-        color: 0xffffcc,
-        emissive: 0xffffaa,
-        emissiveIntensity: 0.3,
-        transparent: true,
-        opacity: 0.15,
-      });
-      const glow = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.02, 0.18), glowMat);
-      glow.position.set(cx, ROOM_H - 0.04, cz);
-      this.object3d.add(glow);
+        const glow = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.02, 0.18), glowMat);
+        glow.position.set(cx, ROOM_H - 0.04, cz);
+        this.object3d.add(glow);
 
-      const pl = new THREE.PointLight(0xffddaa, 0.3, 10);
-      pl.position.set(cx, ROOM_H - 0.1, cz);
-      pl.userData = { timer: Math.random() * 10, buzzRange: buzz[bi++ % buzz.length] };
-      this.object3d.add(pl);
-      this.lights.push(pl);
+        const pl = new THREE.PointLight(0xffddaa, 0.3, 10);
+        pl.position.set(cx, ROOM_H - 0.1, cz);
+        pl.userData = { timer: Math.random() * 10, buzzRange: buzz[bi++ % buzz.length] };
+        this.object3d.add(pl);
+        this.lights.push(pl);
+      }
     }
   }
 
@@ -364,32 +483,37 @@ export class Level0 {
       }
     }
 
-    for (let i = 0; i < Math.min(4, cells.length); i++) {
+    if (cells.length === 0) return;
+
+    for (let i = 0; i < Math.min(6, cells.length); i++) {
       const cell = cells[Math.floor(Math.random() * cells.length)];
-      const cx = cell.x * TILE + TILE / 2 + (Math.random() - 0.5) * 1.5;
-      const cz = cell.z * TILE + TILE / 2 + (Math.random() - 0.5) * 1.5;
+      const cx = cell.x * TILE + TILE / 2 + (Math.random() - 0.5) * 2;
+      const cz = cell.z * TILE + TILE / 2 + (Math.random() - 0.5) * 2;
       const cab = this._cloneModel('filing_cabinet');
       cab.position.set(cx, 0, cz);
+      cab.rotation.y = Math.random() * Math.PI * 2;
       cab.scale.set(0.8, 0.8, 0.8);
       this.object3d.add(cab);
     }
 
-    for (let i = 0; i < Math.min(4, cells.length); i++) {
+    for (let i = 0; i < Math.min(6, cells.length); i++) {
       const cell = cells[Math.floor(Math.random() * cells.length)];
-      const cx = cell.x * TILE + TILE / 2 + (Math.random() - 0.5) * 1.5;
-      const cz = cell.z * TILE + TILE / 2 + (Math.random() - 0.5) * 1.5;
+      const cx = cell.x * TILE + TILE / 2 + (Math.random() - 0.5) * 2;
+      const cz = cell.z * TILE + TILE / 2 + (Math.random() - 0.5) * 2;
       const shelf = this._cloneModel('shelf');
       shelf.position.set(cx, 0, cz);
+      shelf.rotation.y = Math.random() * Math.PI * 2;
       shelf.scale.set(1.5, 1.5, 1.5);
       this.object3d.add(shelf);
     }
 
-    for (let i = 0; i < Math.min(2, cells.length); i++) {
+    for (let i = 0; i < Math.min(3, cells.length); i++) {
       const cell = cells[Math.floor(Math.random() * cells.length)];
-      const cx = cell.x * TILE + TILE / 2 + (Math.random() - 0.5) * 1.5;
-      const cz = cell.z * TILE + TILE / 2 + (Math.random() - 0.5) * 1.5;
+      const cx = cell.x * TILE + TILE / 2 + (Math.random() - 0.5) * 2;
+      const cz = cell.z * TILE + TILE / 2 + (Math.random() - 0.5) * 2;
       const cooler = this._cloneModel('water_cooler');
       cooler.position.set(cx, 0, cz);
+      cooler.rotation.y = Math.random() * Math.PI * 2;
       cooler.scale.set(3, 3, 3);
       this.object3d.add(cooler);
     }
@@ -415,8 +539,8 @@ export class Level0 {
   }
 
   _createExit() {
-    const px = 54 * TILE + TILE / 2;
-    const pz = 13 * TILE + TILE / 2;
+    const px = 75 * TILE + TILE / 2;
+    const pz = 56 * TILE + TILE / 2;
 
     const doorMat = new THREE.MeshStandardMaterial({
       map: this.textures.wallDiff,
@@ -489,7 +613,53 @@ export class Level0 {
     });
   }
 
-  getWallColliders() { return this.wallBoxes; }
+  _createWallStains() {
+    const stainMat = new THREE.MeshStandardMaterial({
+      color: 0x665544,
+      transparent: true,
+      opacity: 0.08,
+      roughness: 0.9,
+      side: THREE.DoubleSide,
+    });
+
+    for (let i = 0; i < 40; i++) {
+      const gx = Math.floor(Math.random() * GW);
+      const gz = Math.floor(Math.random() * GH);
+      if (!this._isWalkable(gx, gz)) continue;
+
+      const cx = gx * TILE + TILE / 2 + (Math.random() - 0.5) * TILE * 0.8;
+      const cz = gz * TILE + TILE / 2 + (Math.random() - 0.5) * TILE * 0.8;
+      const stain = new THREE.Mesh(
+        new THREE.CircleGeometry(0.1 + Math.random() * 0.25, 6),
+        stainMat
+      );
+      const wallDir = Math.floor(Math.random() * 4);
+      const h = 0.5 + Math.random() * 1.5;
+
+      if (wallDir === 0) {
+        stain.position.set(cx, h, gz * TILE);
+        stain.rotation.y = 0;
+      } else if (wallDir === 1) {
+        stain.position.set(cx, h, gz * TILE + TILE);
+        stain.rotation.y = 0;
+      } else if (wallDir === 2) {
+        stain.position.set(gx * TILE, h, cz);
+        stain.rotation.y = Math.PI / 2;
+      } else {
+        stain.position.set(gx * TILE + TILE, h, cz);
+        stain.rotation.y = Math.PI / 2;
+      }
+      this.object3d.add(stain);
+    }
+  }
+
+  getWallColliders() {
+    return this.wallBoxes;
+  }
+
+  getCollisionGrid() {
+    return this.grid;
+  }
 
   update(delta) {
     for (const light of this.lights) {
