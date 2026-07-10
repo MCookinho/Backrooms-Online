@@ -647,8 +647,8 @@ export class Level0 {
       color: 0xe8e0d5, roughness: 0.7, metalness: 0,
     });
     const geoms = [];
-    const bh = 0.08;
-    const bp = 0.025;
+    const bh = 0.13;
+    const bp = 0.04;
     for (const { x, z } of this._walkableTiles) {
       const h = this._getHeight(x, z);
       const cx = x * TILE + TILE / 2, cz = z * TILE + TILE / 2;
