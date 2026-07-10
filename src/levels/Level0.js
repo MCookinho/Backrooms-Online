@@ -27,7 +27,27 @@ export class Level0 {
     this.object3d = new THREE.Group();
     scene.add(this.object3d);
 
+    this.textureLoader = new THREE.TextureLoader();
+    this._loadTextures();
+
     this._buildLevel();
+  }
+
+  _loadTextures() {
+    this.textures = {};
+    const basePath = window.location.pathname.replace(/\/[^/]*$/, '') || '.';
+
+    const load = (name, relPath) => {
+      const tex = this.textureLoader.load(`${basePath}/assets/textures/${relPath}`);
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      this.textures[name] = tex;
+    };
+
+    load('wallDiff', 'wall_decrepit_diff.jpg');
+    load('wallNor', 'wall_decrepit_nor.jpg');
+    load('wallRough', 'wall_decrepit_rough.jpg');
+    load('floorDiff', 'floor_carpet_diff.jpg');
+    load('ceilingDiff', 'ceiling_diff.jpg');
   }
 
   unload() {
@@ -594,120 +614,38 @@ export class Level0 {
   }
 
   _createWallMaterial() {
-    const canvas = document.createElement('canvas');
-    canvas.width = 256;
-    canvas.height = 256;
-    const ctx = canvas.getContext('2d');
-
-    ctx.fillStyle = '#ccbb77';
-    ctx.fillRect(0, 0, 256, 256);
-
-    for (let i = 0; i < 60; i++) {
-      const x = Math.random() * 256;
-      const y = Math.random() * 256;
-      const r = 2 + Math.random() * 8;
-      const alpha = 0.05 + Math.random() * 0.1;
-      ctx.fillStyle = `rgba(140, 120, 60, ${alpha})`;
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    const stripeY = 128;
-    ctx.strokeStyle = 'rgba(180, 160, 80, 0.2)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(0, stripeY - 20);
-    ctx.lineTo(256, stripeY - 20);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(0, stripeY + 20);
-    ctx.lineTo(256, stripeY + 20);
-    ctx.stroke();
-
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(2, 1);
+    const tex = this.textures.wallDiff;
+    const nor = this.textures.wallNor;
+    const rough = this.textures.wallRough;
+    tex.repeat.set(2, 1);
+    nor.repeat.set(2, 1);
+    rough.repeat.set(2, 1);
 
     return new THREE.MeshStandardMaterial({
-      map: texture,
+      map: tex,
+      normalMap: nor,
+      roughnessMap: rough,
       roughness: 0.9,
-      color: 0xccbb77,
+      color: 0xffffff,
     });
   }
 
   _createFloorMaterial() {
-    const canvas = document.createElement('canvas');
-    canvas.width = 128;
-    canvas.height = 128;
-    const ctx = canvas.getContext('2d');
-
-    ctx.fillStyle = '#887744';
-    ctx.fillRect(0, 0, 128, 128);
-
-    const patternSize = 16;
-    for (let x = 0; x < 128; x += patternSize) {
-      for (let y = 0; y < 128; y += patternSize) {
-        const shade = Math.random() * 20 - 10;
-        const r = 0x88 + shade;
-        const g = 0x77 + shade;
-        const b = 0x44 + shade;
-        ctx.fillStyle = `rgb(${r},${g},${b})`;
-        ctx.fillRect(x, y, patternSize - 1, patternSize - 1);
-      }
-    }
-
-    for (let i = 0; i < 20; i++) {
-      const x = Math.random() * 128;
-      const y = Math.random() * 128;
-      ctx.fillStyle = `rgba(60, 50, 30, ${0.1 + Math.random() * 0.2})`;
-      ctx.beginPath();
-      ctx.arc(x, y, 1 + Math.random() * 3, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(4, 4);
+    const tex = this.textures.floorDiff;
+    tex.repeat.set(4, 4);
 
     return new THREE.MeshStandardMaterial({
-      map: texture,
+      map: tex,
       roughness: 0.95,
     });
   }
 
   _createCeilingMaterial() {
-    const canvas = document.createElement('canvas');
-    canvas.width = 128;
-    canvas.height = 128;
-    const ctx = canvas.getContext('2d');
-
-    ctx.fillStyle = '#ccbb99';
-    ctx.fillRect(0, 0, 128, 128);
-
-    for (let x = 0; x < 128; x += 16) {
-      for (let y = 0; y < 128; y += 16) {
-        ctx.strokeStyle = 'rgba(180, 160, 120, 0.3)';
-        ctx.lineWidth = 0.5;
-        ctx.strokeRect(x, y, 16, 16);
-      }
-    }
-
-    for (let i = 0; i < 15; i++) {
-      const x = Math.random() * 128;
-      const y = Math.random() * 128;
-      ctx.fillStyle = `rgba(160, 140, 100, ${0.05 + Math.random() * 0.1})`;
-      ctx.beginPath();
-      ctx.arc(x, y, 2 + Math.random() * 5, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(4, 4);
+    const tex = this.textures.ceilingDiff;
+    tex.repeat.set(4, 4);
 
     return new THREE.MeshStandardMaterial({
-      map: texture,
+      map: tex,
       roughness: 0.9,
     });
   }

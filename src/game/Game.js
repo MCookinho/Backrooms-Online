@@ -44,28 +44,6 @@ export class Game {
     this.audio.init();
 
     const scene = this.renderer.getScene();
-    scene.background = new THREE.Color(0x222244);
-
-    const testCube = new THREE.Mesh(
-      new THREE.BoxGeometry(1, 1, 1),
-      new THREE.MeshStandardMaterial({ color: 0xff4444 })
-    );
-    testCube.position.set(0, 0.5, -2);
-    scene.add(testCube);
-
-    const floor = new THREE.Mesh(
-      new THREE.PlaneGeometry(10, 10),
-      new THREE.MeshStandardMaterial({ color: 0x888888, side: THREE.DoubleSide })
-    );
-    floor.rotation.x = -Math.PI / 2;
-    scene.add(floor);
-
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
-    dirLight.position.set(5, 10, 5);
-    scene.add(dirLight);
-
-    const ambLight = new THREE.AmbientLight(0x444466, 0.6);
-    scene.add(ambLight);
 
     try {
       this.levelManager.registerLevel(0, new Level0());
