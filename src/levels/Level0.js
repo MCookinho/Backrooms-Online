@@ -3,23 +3,18 @@ import * as THREE from 'three';
 const TILE = 4;
 const ROOM_H = 3.5;
 const WALL_T = 0.15;
-const HALF_T = WALL_T / 2;
-const DOOR_W = 0.9;
-const DOOR_H = 2.2;
-
-const SPAWN = 'spawn';
-const HALL = 'hall';
-const ROOM = 'room';
 
 export class Level0 {
   constructor() {
-    this.spawnPoint = new THREE.Vector3(TILE / 2, 0, TILE / 2);
+    this.spawnPoint = new THREE.Vector3(0, 0, 0);
     this.object3d = new THREE.Group();
     this.interactables = [];
     this.props = [];
     this.lights = [];
-    this.rooms = [];
     this.wallBoxes = [];
+    this.maze = null;
+    this.GW = 10;
+    this.GH = 10;
   }
 
   async load(scene) {
@@ -55,9 +50,6 @@ export class Level0 {
   unload() {
     if (this.object3d.parent) this.object3d.parent.remove(this.object3d);
     this._disposeGroup(this.object3d);
-    this.object3d = new THREE.Group();
-    this.interactables = [];
-    this.props = [];
   }
 
   _disposeGroup(g) {
@@ -70,112 +62,112 @@ export class Level0 {
       }
     });
   }
-
-  // ----- LAYOUT GENERATION -----
-
   _buildLevel() {
-    this.rooms = this._generateLayout();
-    for (let i = 0; i < this.rooms.length; i++) this._createRoom(this.rooms[i], i);
-    this._createFluorescentLights();
+    this.roomCells = [];
+    this.maze = this._generateMaze();
+    this._buildFloor();
+    this._buildCeiling();
+    this._buildWalls();
+    this._buildTrim();
+    this._createLights();
     this._createProps();
     this._createExit();
   }
 
-  _generateLayout() {
-    const grid = {};
-    const rooms = [];
-
-    const occ = (x, z) => grid[`${x},${z}`];
-    const mark = (x, z, w, h) => {
-      for (let dx = 0; dx < w; dx++)
-        for (let dz = 0; dz < h; dz++)
-          grid[`${x + dx},${z + dz}`] = true;
-    };
-    const free = (x, z, w, h, margin = 0) => {
-      for (let dx = -margin; dx < w + margin; dx++)
-        for (let dz = -margin; dz < h + margin; dz++)
-          if (occ(x + dx, z + dz)) return false;
-      return true;
-    };
-
-    const add = (x, z, w, h, type) => {
-      mark(x, z, w, h);
-      const idx = rooms.length;
-      rooms.push({ x, z, w, h, type, connections: [] });
-      return idx;
-    };
-
-    const TEMPLATES = [
-      { w: 1, h: 2, type: HALL },
-      { w: 2, h: 1, type: HALL },
-      { w: 1, h: 3, type: HALL },
-      { w: 3, h: 1, type: HALL },
-      { w: 1, h: 4, type: HALL },
-      { w: 4, h: 1, type: HALL },
-      { w: 2, h: 2, type: ROOM },
-      { w: 2, h: 3, type: ROOM },
-      { w: 3, h: 2, type: ROOM },
-      { w: 3, h: 3, type: ROOM },
-    ];
-
-    const ROOM_TEMPLATES = TEMPLATES.filter(t => t.type === ROOM);
-    const HALL_TEMPLATES = TEMPLATES.filter(t => t.type === HALL);
-
-    // Spawn at center
-    add(0, 0, 1, 1, SPAWN);
-
-    const MAX_ROOMS = 24;
-    const MAX_ATTEMPTS = 300;
-    let attempts = 0;
-
-    while (rooms.length < MAX_ROOMS && attempts < MAX_ATTEMPTS) {
-      attempts++;
-      const src = rooms[Math.floor(Math.random() * rooms.length)];
-      const dir = Math.floor(Math.random() * 4);
-      const isHall = Math.random() < 0.45;
-      const tmpl = isHall
-        ? HALL_TEMPLATES[Math.floor(Math.random() * HALL_TEMPLATES.length)]
-        : ROOM_TEMPLATES[Math.floor(Math.random() * ROOM_TEMPLATES.length)];
-
-      const maxOff = dir < 2 ? src.w - 1 : src.h - 1;
-      const off = maxOff > 0 ? Math.floor(Math.random() * (maxOff + 1)) : 0;
-
-      let nx, nz;
-      if (dir === 0) { nx = src.x + off; nz = src.z + src.h; }
-      else if (dir === 1) { nx = src.x + off; nz = src.z - tmpl.h; }
-      else if (dir === 2) { nx = src.x + src.w; nz = src.z + off; }
-      else { nx = src.x - tmpl.w; nz = src.z + off; }
-
-      // For halls, add a margin of 1 on the short sides to avoid adjacent rooms
-      const margin = tmpl.type === HALL ? (tmpl.w === 1 || tmpl.h === 1 ? 0 : 1) : 1;
-      if (!free(nx, nz, tmpl.w, tmpl.h, margin)) continue;
-
-      const ni = add(nx, nz, tmpl.w, tmpl.h, tmpl.type);
-      src.connections.push(ni);
-      rooms[ni].connections.push(rooms.indexOf(src));
+  _generateMaze() {
+    const GW = this.GW, GH = this.GH;
+    const cells = [];
+    for (let z = 0; z < GH; z++) {
+      cells[z] = [];
+      for (let x = 0; x < GW; x++) {
+        cells[z][x] = { n: true, s: true, e: true, w: true, visited: false };
+      }
     }
 
-    return rooms;
+    const sx = Math.floor(GW / 2);
+    const sz = Math.floor(GH / 2);
+    cells[sz][sx].visited = true;
+    const stack = [{ x: sx, z: sz }];
+
+    while (stack.length) {
+      const cur = stack[stack.length - 1];
+      const nb = [];
+      if (cur.z > 0 && !cells[cur.z - 1][cur.x].visited) nb.push({ x: cur.x, z: cur.z - 1, d: 'n' });
+      if (cur.z < GH - 1 && !cells[cur.z + 1][cur.x].visited) nb.push({ x: cur.x, z: cur.z + 1, d: 's' });
+      if (cur.x > 0 && !cells[cur.z][cur.x - 1].visited) nb.push({ x: cur.x - 1, z: cur.z, d: 'w' });
+      if (cur.x < GW - 1 && !cells[cur.z][cur.x + 1].visited) nb.push({ x: cur.x + 1, z: cur.z, d: 'e' });
+      if (!nb.length) { stack.pop(); continue; }
+
+      const n = nb[Math.floor(Math.random() * nb.length)];
+      if (n.d === 'n') { cells[cur.z][cur.x].n = false; cells[n.z][n.x].s = false; }
+      if (n.d === 's') { cells[cur.z][cur.x].s = false; cells[n.z][n.x].n = false; }
+      if (n.d === 'e') { cells[cur.z][cur.x].e = false; cells[n.z][n.x].w = false; }
+      if (n.d === 'w') { cells[cur.z][cur.x].w = false; cells[n.z][n.x].e = false; }
+      cells[n.z][n.x].visited = true;
+      stack.push(n);
+    }
+
+    // Remove random walls for loops
+    for (let z = 0; z < GH; z++) {
+      for (let x = 0; x < GW; x++) {
+        if (Math.random() > 0.15) continue;
+        const dirs = [];
+        if (z > 0 && cells[z][x].n) dirs.push('n');
+        if (z < GH - 1 && cells[z][x].s) dirs.push('s');
+        if (x > 0 && cells[z][x].w) dirs.push('w');
+        if (x < GW - 1 && cells[z][x].e) dirs.push('e');
+        if (!dirs.length) continue;
+        const d = dirs[Math.floor(Math.random() * dirs.length)];
+        if (d === 'n') { cells[z][x].n = false; cells[z - 1][x].s = false; }
+        if (d === 's') { cells[z][x].s = false; cells[z + 1][x].n = false; }
+        if (d === 'e') { cells[z][x].e = false; cells[z][x + 1].w = false; }
+        if (d === 'w') { cells[z][x].w = false; cells[z][x - 1].e = false; }
+      }
+    }
+
+    // Merge 2x2 blocks into rooms
+    for (let z = 0; z < GH - 1; z += 2) {
+      for (let x = 0; x < GW - 1; x += 2) {
+        if (Math.random() > 0.35) continue;
+        cells[z][x].e = false; cells[z][x + 1].w = false;
+        cells[z][x].s = false; cells[z + 1][x].n = false;
+        cells[z + 1][x].e = false; cells[z + 1][x + 1].w = false;
+        cells[z][x + 1].s = false; cells[z + 1][x + 1].n = false;
+        this.roomCells.push({ x, z }, { x: x + 1, z }, { x, z: z + 1 }, { x: x + 1, z: z + 1 });
+      }
+    }
+
+    this.spawnPoint.set(sx * TILE + TILE / 2, 0, sz * TILE + TILE / 2);
+    return cells;
   }
 
-  // ----- ROOM CONSTRUCTION -----
+  _buildFloor() {
+    const mat = this._createFloorMaterial();
+    const m = new THREE.Mesh(
+      new THREE.BoxGeometry(this.GW * TILE, 0.2, this.GH * TILE),
+      mat
+    );
+    m.position.set(this.GW * TILE / 2, -0.1, this.GH * TILE / 2);
+    this.object3d.add(m);
+  }
 
-  _createRoom(room, idx) {
-    const x = room.x * TILE;
-    const z = room.z * TILE;
-    const w = room.w * TILE;
-    const h = room.h * TILE;
-
-    const wallMat = this._createWallMaterial();
-    const floorMat = this._createFloorMaterial();
-    const ceilMat = this._createCeilingMaterial();
-    const trimMat = new THREE.MeshStandardMaterial({ color: 0x887755, roughness: 0.7 });
-
+  _buildCeiling() {
+    const mat = this._createCeilingMaterial();
+    const m = new THREE.Mesh(
+      new THREE.BoxGeometry(this.GW * TILE, 0.1, this.GH * TILE),
+      mat
+    );
+    m.position.set(this.GW * TILE / 2, ROOM_H, this.GH * TILE / 2);
+    this.object3d.add(m);
+  }
+  _buildWalls() {
+    const mat = this._createWallMaterial();
     const wallY = ROOM_H / 2;
+    const GW = this.GW, GH = this.GH;
 
-    const addWall = (cx, cz, sw, ry) => {
-      if (sw <= 0.01) return;
-      const m = new THREE.Mesh(new THREE.BoxGeometry(sw, ROOM_H, WALL_T), wallMat);
+    const addWall = (cx, cz, len, ry) => {
+      if (len <= 0.01) return;
+      const m = new THREE.Mesh(new THREE.BoxGeometry(len, ROOM_H, WALL_T), mat);
       m.position.set(cx, wallY, cz);
       m.rotation.y = ry;
       this.object3d.add(m);
@@ -183,154 +175,60 @@ export class Level0 {
       this.wallBoxes.push(new THREE.Box3().setFromObject(m));
     };
 
-    // Determine which sides have doors (lower idx) or skip (higher idx)
-    const hasDoor = { front: false, back: false, left: false, right: false };
-    const isConn = { front: false, back: false, left: false, right: false };
-
-    for (const ci of room.connections) {
-      const c = this.rooms[ci];
-      if (!c) continue;
-      const dx = c.x - room.x;
-      const dz = c.z - room.z;
-      let side = '';
-      if (dz > 0) side = 'back';
-      else if (dz < 0) side = 'front';
-      else if (dx > 0) side = 'right';
-      else side = 'left';
-      if (!side) continue;
-      isConn[side] = true;
-      if (idx < ci) hasDoor[side] = true;
-    }
-
-    const sides = [
-      { dir: 'front', cx: x + w / 2, cz: z + HALF_T, ry: 0 },
-      { dir: 'back', cx: x + w / 2, cz: z + h - HALF_T, ry: 0 },
-      { dir: 'left', cx: x + HALF_T, cz: z + h / 2, ry: Math.PI / 2 },
-      { dir: 'right', cx: x + w - HALF_T, cz: z + h / 2, ry: Math.PI / 2 },
-    ];
-
-    for (const side of sides) {
-      const len = (side.dir === 'front' || side.dir === 'back') ? w : h;
-
-      if (isConn[side.dir] && !hasDoor[side.dir]) {
-        // Higher-index room on a shared side: skip wall entirely
-        continue;
-      }
-
-      if (hasDoor[side.dir]) {
-        const seg = (len - DOOR_W) / 2;
-        if (seg <= 0) continue;
-
-        if (side.ry === 0) {
-          addWall(side.cx - len / 2 + seg / 2, side.cz, seg, 0);
-          addWall(side.cx + len / 2 - seg / 2, side.cz, seg, 0);
-        } else {
-          addWall(side.cx, side.cz - len / 2 + seg / 2, seg, Math.PI / 2);
-          addWall(side.cx, side.cz + len / 2 - seg / 2, seg, Math.PI / 2);
-        }
-        this._createDoorFrame(side.cx, side.cz, side.ry);
-      } else {
-        addWall(side.cx, side.cz, len, side.ry);
+    // Horizontal walls (along X axis, at Z boundaries between rows)
+    for (let z = 0; z <= GH; z++) {
+      for (let x = 0; x < GW; x++) {
+        const hasWall = (z === 0 || z === GH) ? true : this.maze[z - 1][x].s;
+        if (!hasWall) continue;
+        const cz = z * TILE;
+        addWall(x * TILE + TILE / 2, cz, TILE, 0);
       }
     }
 
-    // Floor (surface at y = 0)
-    const fl = new THREE.Mesh(new THREE.BoxGeometry(w, 0.2, h), floorMat);
-    fl.position.set(x + w / 2, -0.1, z + h / 2);
-    this.object3d.add(fl);
-
-    // Ceiling
-    const cl = new THREE.Mesh(new THREE.BoxGeometry(w, 0.1, h), ceilMat);
-    cl.position.set(x + w / 2, ROOM_H, z + h / 2);
-    this.object3d.add(cl);
-
-    // Wall trim (baseboard) along non-door walls
-    this._createTrim(x, z, w, h, room, idx, trimMat);
+    // Vertical walls (along Z axis, at X boundaries between columns)
+    for (let z = 0; z < GH; z++) {
+      for (let x = 0; x <= GW; x++) {
+        const hasWall = (x === 0 || x === GW) ? true : this.maze[z][x - 1].e;
+        if (!hasWall) continue;
+        const cx = x * TILE;
+        addWall(cx, z * TILE + TILE / 2, TILE, Math.PI / 2);
+      }
+    }
   }
 
-  _createTrim(rx, rz, rw, rh, room, idx, mat) {
-    const hasDoor = { front: false, back: false, left: false, right: false };
-    const isConn = { front: false, back: false, left: false, right: false };
+  _buildTrim() {
+    const mat = new THREE.MeshStandardMaterial({ color: 0x887755, roughness: 0.7 });
+    const th = 0.08, td = 0.06, ty = th / 2;
+    const GW = this.GW, GH = this.GH;
 
-    for (const ci of room.connections) {
-      const c = this.rooms[ci];
-      if (!c) continue;
-      const dx = c.x - room.x;
-      const dz = c.z - room.z;
-      let side = '';
-      if (dz > 0) side = 'back';
-      else if (dz < 0) side = 'front';
-      else if (dx > 0) side = 'right';
-      else side = 'left';
-      if (!side) continue;
-      isConn[side] = true;
-      if (idx < ci) hasDoor[side] = true;
-    }
-
-    const th = 0.08;
-    const td = 0.06;
-    const ty = th / 2;
-
-    const makeTrim = (cx, cz, len, ry) => {
-      if (len <= 0) return;
+    const addTrim = (cx, cz, len, ry) => {
+      if (len <= 0.01) return;
       const m = new THREE.Mesh(new THREE.BoxGeometry(len, th, td), mat);
       m.position.set(cx, ty, cz);
       m.rotation.y = ry;
       this.object3d.add(m);
     };
 
-    const sides = [
-      { dir: 'front', cx: rx + rw / 2, cz: rz + 0.01, ry: 0 },
-      { dir: 'back', cx: rx + rw / 2, cz: rz + rh - 0.01, ry: 0 },
-      { dir: 'left', cx: rx + 0.01, cz: rz + rh / 2, ry: Math.PI / 2 },
-      { dir: 'right', cx: rx + rw - 0.01, cz: rz + rh / 2, ry: Math.PI / 2 },
-    ];
+    for (let z = 0; z <= GH; z++) {
+      for (let x = 0; x < GW; x++) {
+        const hasWall = (z === 0 || z === GH) ? true : this.maze[z - 1][x].s;
+        if (!hasWall) continue;
+        const cz = z * TILE;
+        addTrim(x * TILE + TILE / 2, cz, TILE, 0);
+      }
+    }
 
-    for (const s of sides) {
-      if (isConn[s.dir] && !hasDoor[s.dir]) continue;
-      const len = (s.dir === 'front' || s.dir === 'back') ? rw : rh;
-      if (hasDoor[s.dir]) {
-        const seg = (len - DOOR_W) / 2;
-        if (seg <= 0) continue;
-        if (s.ry === 0) {
-          makeTrim(s.cx - len / 2 + seg / 2, s.cz, seg, 0);
-          makeTrim(s.cx + len / 2 - seg / 2, s.cz, seg, 0);
-        } else {
-          makeTrim(s.cx, s.cz - len / 2 + seg / 2, seg, Math.PI / 2);
-          makeTrim(s.cx, s.cz + len / 2 - seg / 2, seg, Math.PI / 2);
-        }
-      } else {
-        makeTrim(s.cx, s.cz, len, s.ry);
+    for (let z = 0; z < GH; z++) {
+      for (let x = 0; x <= GW; x++) {
+        const hasWall = (x === 0 || x === GW) ? true : this.maze[z][x - 1].e;
+        if (!hasWall) continue;
+        const cx = x * TILE;
+        addTrim(cx, z * TILE + TILE / 2, TILE, Math.PI / 2);
       }
     }
   }
 
-  _createDoorFrame(x, z, ry) {
-    const mat = new THREE.MeshStandardMaterial({ color: 0x554422, roughness: 0.8 });
-    const thick = 0.08;
-    const inset = 0.02;
-
-    const top = new THREE.Mesh(new THREE.BoxGeometry(DOOR_W + 0.2, thick, 0.1), mat);
-    top.position.set(x, DOOR_H + inset, z);
-    top.rotation.y = ry;
-    this.object3d.add(top);
-
-    const off = DOOR_W / 2 + 0.06;
-    const cos = Math.cos(ry);
-    const sin = Math.sin(ry);
-
-    const left = new THREE.Mesh(new THREE.BoxGeometry(thick, DOOR_H, 0.1), mat);
-    left.position.set(x - cos * off, DOOR_H / 2 + inset, z - sin * off);
-    this.object3d.add(left);
-
-    const right = new THREE.Mesh(new THREE.BoxGeometry(thick, DOOR_H, 0.1), mat);
-    right.position.set(x + cos * off, DOOR_H / 2 + inset, z + sin * off);
-    this.object3d.add(right);
-  }
-
-  // ----- LIGHTING -----
-
-  _createFluorescentLights() {
+  _createLights() {
     const fixMat = new THREE.MeshStandardMaterial({
       map: this.textures.lightDiff, normalMap: this.textures.lightNor,
       roughnessMap: this.textures.lightRough, roughness: 0.6, metalness: 0.3, color: 0xcccccc,
@@ -340,61 +238,46 @@ export class Level0 {
       emissiveIntensity: 0.5, color: 0xffffaa,
     });
 
-    for (const room of this.rooms) {
-      const x = room.x * TILE, z = room.z * TILE;
-      const w = room.w * TILE, h = room.h * TILE;
-      const nx = Math.max(1, Math.floor(w / TILE));
-      const nz = Math.max(1, Math.floor(h / TILE));
+    const lightSet = new Set();
+    for (const rc of this.roomCells) lightSet.add(`${rc.x},${rc.z}`);
 
-      for (let lx = 0; lx < nx; lx++) {
-        for (let lz = 0; lz < nz; lz++) {
-          const px = x + (lx + 0.5) * (w / nx);
-          const pz = z + (lz + 0.5) * (h / nz);
+    for (let z = 0; z < this.GH; z++) {
+      for (let x = 0; x < this.GW; x++) {
+        const isRoom = lightSet.has(`${x},${z}`);
+        if (!isRoom && Math.random() > 0.5) continue;
 
-          const fix = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.05, 0.2), fixMat);
-          fix.position.set(px, ROOM_H - 0.05, pz);
-          this.object3d.add(fix);
+        const px = x * TILE + TILE / 2;
+        const pz = z * TILE + TILE / 2;
 
-          const bulb = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.03, 0.1), bulbMat);
-          bulb.position.set(px, ROOM_H - 0.08, pz);
-          this.object3d.add(bulb);
+        const fix = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.05, 0.2), fixMat);
+        fix.position.set(px, ROOM_H - 0.05, pz);
+        this.object3d.add(fix);
 
-          const pl = new THREE.PointLight(0xfff0cc, 1.2, 10, 1.5);
-          pl.position.set(px, ROOM_H - 0.2, pz);
-          this.object3d.add(pl);
-          this.lights.push(pl);
-          pl.userData = { buzzRange: 0.95 + Math.random() * 0.1, timer: 0 };
-        }
+        const bulb = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.03, 0.1), bulbMat);
+        bulb.position.set(px, ROOM_H - 0.08, pz);
+        this.object3d.add(bulb);
+
+        const pl = new THREE.PointLight(0xfff0cc, 1.2, 10, 1.5);
+        pl.position.set(px, ROOM_H - 0.2, pz);
+        this.object3d.add(pl);
+        this.lights.push(pl);
+        pl.userData = { buzzRange: 0.95 + Math.random() * 0.1, timer: 0 };
       }
     }
 
     const ambient = new THREE.AmbientLight(0xffeedd, 0.4);
     this.object3d.add(ambient);
   }
-
-  // ----- PROPS -----
-
   _createProps() {
     const placed = [];
 
-    for (const room of this.rooms) {
-      if (room.type === SPAWN) continue;
-      const x = room.x * TILE, z = room.z * TILE;
-      const w = room.w * TILE, h = room.h * TILE;
-      const area = w * h;
-
-      // More props in larger rooms
-      const count = room.type === ROOM
-        ? Math.floor(Math.random() * Math.min(4, area / 10)) + 1
-        : Math.floor(Math.random() * 2);
-
-      for (let i = 0; i < count; i++) {
-        for (let attempt = 0; attempt < 10; attempt++) {
-          const px = x + 0.8 + Math.random() * (w - 1.6);
-          const pz = z + 0.8 + Math.random() * (h - 1.6);
-          const tooClose = placed.some(p =>
-            Math.abs(p.x - px) < 1.2 && Math.abs(p.z - pz) < 1.2
-          );
+    for (const rc of this.roomCells) {
+      const x = rc.x * TILE, z = rc.z * TILE;
+      for (let i = 0; i < Math.floor(Math.random() * 2) + 1; i++) {
+        for (let att = 0; att < 5; att++) {
+          const px = x + 0.8 + Math.random() * (TILE - 1.6);
+          const pz = z + 0.8 + Math.random() * (TILE - 1.6);
+          const tooClose = placed.some(p => Math.abs(p.x - px) < 1.2 && Math.abs(p.z - pz) < 1.2);
           if (!tooClose) {
             placed.push({ x: px, z: pz });
             const isChair = Math.random() < 0.6;
@@ -452,28 +335,16 @@ export class Level0 {
   }
 
   _createScatteredItems() {
-    const positions = [
-      { x: TILE + 0.5, z: TILE + 0.5, type: 'almond_water' },
-      { x: TILE * 3 + 0.5, z: TILE * 2 + 0.5, type: 'flashlight' },
-      { x: TILE * 5 + 0.5, z: TILE + 0.5, type: 'batteries' },
-      { x: TILE * 2 + 0.5, z: TILE * 4 + 0.5, type: 'lighter' },
-      { x: TILE * 4 + 0.5, z: TILE * 3 + 0.5, type: 'almond_water' },
-      { x: TILE + 0.5, z: TILE * 6 + 0.5, type: 'note' },
-    ];
-
-    const spawnRoom = this.rooms.find(r => r.type === SPAWN);
-    const sx = spawnRoom ? spawnRoom.x * TILE : 0;
-    const sz = spawnRoom ? spawnRoom.z * TILE : 0;
-
-    // Place items in rooms near spawn
+    const itemTypes = ['almond_water', 'flashlight', 'batteries', 'lighter', 'note', 'almond_water'];
     let idx = 0;
-    for (const room of this.rooms) {
-      if (room.type === SPAWN) continue;
-      if (idx >= positions.length) break;
-      const px = room.x * TILE + room.w * TILE / 2;
-      const pz = room.z * TILE + room.h * TILE / 2;
-      const p = positions[idx];
-      this._spawnItem(p.type, px, pz);
+
+    for (const rc of this.roomCells) {
+      if (idx >= itemTypes.length) break;
+      // Only use first few room cells for items
+      if (Math.random() > 0.5) continue;
+      const px = rc.x * TILE + TILE / 2;
+      const pz = rc.z * TILE + TILE / 2;
+      this._spawnItem(itemTypes[idx], px, pz);
       idx++;
     }
   }
@@ -541,55 +412,65 @@ export class Level0 {
     }
     return g;
   }
-
-  // ----- EXIT -----
-
   _createExit() {
-    // Place exit in the room farthest from spawn using BFS
+    // BFS to farthest cell
+    const GW = this.GW, GH = this.GH;
+    const sx = Math.floor(GW / 2), sz = Math.floor(GH / 2);
     const dist = {};
-    const queue = [0];
-    dist[0] = 0;
-    let farIdx = 0;
+    const queue = [{ x: sx, z: sz }];
+    dist[`${sx},${sz}`] = 0;
+    let farKey = `${sx},${sz}`;
 
     while (queue.length) {
       const cur = queue.shift();
-      for (const conn of this.rooms[cur].connections) {
-        if (dist[conn] === undefined) {
-          dist[conn] = dist[cur] + 1;
-          queue.push(conn);
-          if (dist[conn] > dist[farIdx]) farIdx = conn;
-        }
+      const ck = `${cur.x},${cur.z}`;
+      const d = dist[ck];
+      if (d > dist[farKey]) farKey = ck;
+
+      const cell = this.maze[cur.z][cur.x];
+      if (!cell.n && cur.z > 0) {
+        const nk = `${cur.x},${cur.z - 1}`;
+        if (dist[nk] === undefined) { dist[nk] = d + 1; queue.push({ x: cur.x, z: cur.z - 1 }); }
+      }
+      if (!cell.s && cur.z < GH - 1) {
+        const nk = `${cur.x},${cur.z + 1}`;
+        if (dist[nk] === undefined) { dist[nk] = d + 1; queue.push({ x: cur.x, z: cur.z + 1 }); }
+      }
+      if (!cell.w && cur.x > 0) {
+        const nk = `${cur.x - 1},${cur.z}`;
+        if (dist[nk] === undefined) { dist[nk] = d + 1; queue.push({ x: cur.x - 1, z: cur.z }); }
+      }
+      if (!cell.e && cur.x < GW - 1) {
+        const nk = `${cur.x + 1},${cur.z}`;
+        if (dist[nk] === undefined) { dist[nk] = d + 1; queue.push({ x: cur.x + 1, z: cur.z }); }
       }
     }
 
-    const exitRoom = this.rooms[farIdx];
-    const ex = exitRoom.x * TILE + exitRoom.w * TILE / 2;
-    const ez = exitRoom.z * TILE + exitRoom.h * TILE / 3;
-    const ed = exitRoom.z * TILE + exitRoom.h * TILE / 2;
+    const [ex, ez] = farKey.split(',').map(Number);
+    const px = ex * TILE + TILE / 2;
+    const pz = ez * TILE + TILE / 2;
 
     const exitMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9 });
     const glowMat = new THREE.MeshStandardMaterial({ color: 0x445566, emissive: 0x223344, emissiveIntensity: 0.3 });
 
     const door = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.4, 0.1), exitMat);
-    door.position.set(ex, 1.2, ez);
+    door.position.set(px, 1.2, pz);
     this.object3d.add(door);
 
     const glow = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.3, 0.05), glowMat);
-    glow.position.set(ex, 2.5, ez + 0.05);
+    glow.position.set(px, 2.5, pz + 0.05);
     this.object3d.add(glow);
 
     const sign = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.2, 0.05), glowMat);
-    sign.position.set(ex, 2.5, ez + 0.1);
+    sign.position.set(px, 2.5, pz + 0.1);
     this.object3d.add(sign);
 
     this.interactables.push({
       mesh: door,
       type: 'exit',
-      position: new THREE.Vector3(ex, 1.2, ed),
+      position: new THREE.Vector3(px, 1.2, pz),
     });
   }
-
-  // ----- MATERIALS -----
 
   _createWallMaterial() {
     return new THREE.MeshStandardMaterial({
@@ -612,8 +493,6 @@ export class Level0 {
     });
   }
 
-  // ----- PUBLIC -----
-
   getWallColliders() { return this.wallBoxes; }
 
   update(delta) {
@@ -627,14 +506,18 @@ export class Level0 {
   getInteractables() { return this.interactables; }
 
   getThreatPositions() {
-    const nonSpawn = this.rooms.filter(r => r.type !== SPAWN);
     const positions = [];
-    const shuffled = [...nonSpawn].sort(() => Math.random() - 0.5);
-    for (let i = 0; i < Math.min(3, shuffled.length); i++) {
-      const r = shuffled[i];
-      const x = r.x * TILE + 0.8 + Math.random() * (r.w * TILE - 1.6);
-      const z = r.z * TILE + 0.8 + Math.random() * (r.h * TILE - 1.6);
-      positions.push(new THREE.Vector3(x, 0, z));
+    // Place threats in random cells (not spawn area)
+    for (let i = 0; i < 3; i++) {
+      for (let att = 0; att < 20; att++) {
+        const x = Math.floor(Math.random() * this.GW);
+        const z = Math.floor(Math.random() * this.GH);
+        if (x === Math.floor(this.GW / 2) && z === Math.floor(this.GH / 2)) continue;
+        const px = x * TILE + TILE / 2;
+        const pz = z * TILE + TILE / 2;
+        positions.push(new THREE.Vector3(px, 0, pz));
+        break;
+      }
     }
     return positions;
   }
