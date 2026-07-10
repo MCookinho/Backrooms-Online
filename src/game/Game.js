@@ -82,17 +82,18 @@ export class Game {
 
   _spawnThreats() {
     const level = this.levelManager.getCurrentLevel();
-    const positions = level.getThreatPositions ? level.getThreatPositions() : [];
+    const entities = level.getThreatPositions ? level.getThreatPositions() : [];
 
-    for (const pos of positions) {
+    for (const ent of entities) {
       const threat = new Threat(
         this.renderer.getScene(),
-        pos,
+        ent.position,
         {
-          type: 'hound',
-          speed: 1.8 + Math.random() * 0.5,
-          aggroRange: 7 + Math.random() * 3,
-          patrolRadius: 3 + Math.random() * 2,
+          type: ent.type || 'hound',
+          speed: ent.speed || 1.5,
+          damage: ent.damage || 10,
+          aggroRange: ent.aggroRange || 8,
+          patrolRadius: ent.patrolRadius || 4,
         }
       );
       this.threats.push(threat);
