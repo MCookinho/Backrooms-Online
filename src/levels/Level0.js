@@ -157,15 +157,15 @@ export class Level0 {
       t.repeat.set(rx, ry);
       this.textures[key] = t;
     };
-    loadTex('floorDiff', 'backrooms-level-0/floor_1.png', 3, 3);
-    loadTex('floorNorm', 'backrooms-level-0/NormalMap (20)_6.png', 3, 3);
-    loadTex('floorRough', 'backrooms-level-0/nmp_0.jpeg', 3, 3);
-    loadTex('wallDiff', 'backrooms-level-0/bwa_7.jpeg', 2, 2);
-    loadTex('wallNor', 'backrooms-level-0/NormalMap (20)_6.png', 2, 2);
-    loadTex('wallRough', 'backrooms-level-0/nmp_0.jpeg', 2, 2);
-    loadTex('ceilDiff', 'backrooms-level-0/backrooms roof_4.png', 3, 3);
-    loadTex('ceilNor', 'backrooms-level-0/NormalMap (21)_3.png', 3, 3);
-    loadTex('ceilEmit', 'backrooms-level-0/remis_2.png', 3, 3);
+    loadTex('floorDiff', 'backrooms-level-0/backrooms-carpet-diffuse.png', 3, 3);
+    loadTex('floorNorm', 'backrooms-level-0/backrooms-carpet-normal.png', 3, 3);
+    loadTex('wallDiff', 'backrooms-level-0/backrooms-wall-diffuse.png', 2, 2);
+    loadTex('wallNor', 'backrooms-level-0/backrooms-wall-normal.png', 2, 2);
+    loadTex('ceilDiff', 'backrooms-level-0/backrooms-ceiling-tile-diffuse.png', 3, 3);
+    loadTex('ceilNor', 'backrooms-level-0/backrooms-ceiling-tile-normal.png', 3, 3);
+    loadTex('ceilRough', 'backrooms-level-0/backrooms-ceiling-tile-roughness.png', 3, 3);
+    loadTex('fixtureDiff', 'backrooms-level-0/backrooms-ceiling-light-diffuse.png', 1, 1);
+    loadTex('fixtureEmit', 'backrooms-level-0/backrooms-ceiling-light-emission.png', 1, 1);
 
     const loadModel = (key, filename) => new Promise(resolve => {
       const loader = new GLTFLoader();
@@ -233,7 +233,7 @@ export class Level0 {
   _buildFloor() {
     const mat = _makeMat('floor', {
       map: this.textures.floorDiff, normalMap: this.textures.floorNorm,
-      roughnessMap: this.textures.floorRough,
+      roughness: 0.9,
     });
     const geom = new THREE.PlaneGeometry(TILE, TILE);
     const count = this._walkableTiles.length;
@@ -254,7 +254,7 @@ export class Level0 {
   _buildCeiling() {
     const mat = _makeMat('ceiling', {
       map: this.textures.ceilDiff, normalMap: this.textures.ceilNor,
-      roughness: 0.95, color: 0xeee8e0,
+      roughnessMap: this.textures.ceilRough, color: 0xeee8e0,
     });
     const geom = new THREE.PlaneGeometry(TILE, TILE);
     const count = this._walkableTiles.length;
@@ -274,7 +274,7 @@ export class Level0 {
   _buildWalls() {
     const wallMat = _makeMat('wall', {
       map: this.textures.wallDiff, normalMap: this.textures.wallNor,
-      roughnessMap: this.textures.wallRough,
+      roughness: 0.85,
     });
     const footerMat = _makeMat('footer', {
       map: this.textures.wallDiff, roughness: 0.8, color: 0x887755,
@@ -328,9 +328,8 @@ export class Level0 {
     this.object3d.add(backLight);
 
     const fixtureMat = _makeMat('fixture', {
-      map: this.textures.ceilDiff, normalMap: this.textures.ceilNor,
-      roughness: 0.7, metalness: 0.1,
-      emissiveMap: this.textures.ceilEmit, emissive: 0xffdd88, emissiveIntensity: 2.5,
+      map: this.textures.fixtureDiff, roughness: 0.4, metalness: 0,
+      emissiveMap: this.textures.fixtureEmit, emissive: 0xffdd88, emissiveIntensity: 2.5,
     });
 
     const fGeom = new THREE.BoxGeometry(1.6, 0.05, 0.25);
