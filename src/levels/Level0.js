@@ -188,10 +188,61 @@ export class Level0 {
     }
   }
 
+  _generateCeilingTexture() {
+    const size = 512;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = '#e8e0d8';
+    ctx.fillRect(0, 0, size, size);
+
+    const d = ctx.getImageData(0, 0, size, size).data;
+    const imgData = ctx.createImageData(size, size);
+    for (let i = 0; i < d.length; i += 4) {
+      const n = (Math.random() - 0.5) * 18;
+      imgData.data[i] = Math.max(0, Math.min(255, d[i] + n));
+      imgData.data[i + 1] = Math.max(0, Math.min(255, d[i + 1] + n));
+      imgData.data[i + 2] = Math.max(0, Math.min(255, d[i + 2] + n));
+      imgData.data[i + 3] = 255;
+    }
+    ctx.putImageData(imgData, 0, 0);
+
+    const ts = 128;
+    ctx.fillStyle = 'rgba(200, 195, 190, 0.3)';
+    ctx.strokeStyle = 'rgba(180, 175, 170, 0.15)';
+    ctx.lineWidth = 1;
+    for (let py = 0; py < size; py += ts) {
+      for (let px = 0; px < size; px += ts) {
+        ctx.strokeRect(px, py, ts, ts);
+        const cx = px + ts / 2, cy = py + ts / 2;
+        ctx.beginPath();
+        ctx.arc(cx - ts * 0.35, cy - ts * 0.35, 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(cx + ts * 0.35, cy - ts * 0.35, 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(cx - ts * 0.35, cy + ts * 0.35, 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(cx + ts * 0.35, cy + ts * 0.35, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(4, 4);
+    return tex;
+  }
+
   _buildCeiling() {
     const ceilMat = new THREE.MeshStandardMaterial({
-      color: 0xddccbb,
+      map: this._generateCeilingTexture(),
       roughness: 0.95,
+      color: 0xeee8e0,
     });
     for (let z = 0; z < GH; z++) {
       for (let x = 0; x < GW; x++) {
@@ -207,12 +258,82 @@ export class Level0 {
     }
   }
 
+  _generateWallpaperTexture() {
+    const size = 512;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = '#d4c080';
+    ctx.fillRect(0, 0, size, size);
+
+    const d = ctx.getImageData(0, 0, size, size).data;
+    const imgData = ctx.createImageData(size, size);
+    for (let i = 0; i < d.length; i += 4) {
+      const n = (Math.random() - 0.5) * 16;
+      imgData.data[i] = Math.max(0, Math.min(255, d[i] + n));
+      imgData.data[i + 1] = Math.max(0, Math.min(255, d[i + 1] + n));
+      imgData.data[i + 2] = Math.max(0, Math.min(255, d[i + 2] + n));
+      imgData.data[i + 3] = 255;
+    }
+    ctx.putImageData(imgData, 0, 0);
+
+    const ps = 128;
+    for (let py = 0; py < size; py += ps) {
+      for (let px = 0; px < size; px += ps) {
+        const cx = px + ps / 2, cy = py + ps / 2;
+
+        ctx.strokeStyle = 'rgba(180, 140, 60, 0.25)';
+        ctx.lineWidth = 1.5;
+        for (let a = 0; a < 8; a++) {
+          const ang = (a / 8) * Math.PI * 2;
+          ctx.beginPath();
+          ctx.ellipse(cx + Math.cos(ang) * 14, cy + Math.sin(ang) * 14, 7, 11, ang, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        ctx.fillStyle = 'rgba(200, 160, 70, 0.15)';
+        ctx.beginPath();
+        ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = 'rgba(180, 140, 60, 0.08)';
+        ctx.beginPath();
+        ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    for (let x = 0; x < size; x += 16) {
+      ctx.strokeStyle = 'rgba(200, 180, 100, 0.06)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, size);
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = 'rgba(140, 100, 50, 0.03)';
+    for (let i = 0; i < 30; i++) {
+      const sx = Math.random() * size, sy = Math.random() * size;
+      ctx.beginPath();
+      ctx.ellipse(sx, sy, 10 + Math.random() * 25, 8 + Math.random() * 20, Math.random() * Math.PI, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(3, 3);
+    tex.anisotropy = 4;
+    return tex;
+  }
+
   _createWallMaterial() {
     return new THREE.MeshStandardMaterial({
-      map: this.textures.wallDiff,
-      normalMap: this.textures.wallNor,
+      map: this._generateWallpaperTexture(),
       roughness: 0.85,
-      color: 0xccbb77,
+      color: 0xddcc88,
     });
   }
 
@@ -399,33 +520,43 @@ export class Level0 {
   }
 
   _createLights() {
+    const fixtureMat = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.7 });
     const panelMat = new THREE.MeshStandardMaterial({
       color: 0xffeecc,
-      emissive: 0xffeecc,
-      emissiveIntensity: 0.5,
-      roughness: 0.3,
+      emissive: 0xffeedd,
+      emissiveIntensity: 0.6,
+      roughness: 0.4,
     });
-
-    const fixtureMat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.7 });
 
     const ambient = new THREE.AmbientLight(0xffeedd, 1.2);
     this.object3d.add(ambient);
 
+    const lightPositions = [];
     for (let z = 0; z < GH; z++) {
       for (let x = 0; x < GW; x++) {
         if (!this._isWalkable(x, z)) continue;
-        const cx = x * TILE + TILE / 2;
-        const cz = z * TILE + TILE / 2;
-
-        const fixture = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.08, 0.3), fixtureMat);
-        fixture.position.set(cx, ROOM_H - 0.04, cz);
-        this.object3d.add(fixture);
-
-        const panel = new THREE.Mesh(new THREE.PlaneGeometry(0.25, 0.25), panelMat);
-        panel.rotation.x = Math.PI / 2;
-        panel.position.set(cx, ROOM_H - 0.08, cz);
-        this.object3d.add(panel);
+        if ((x + z) % 2 === 0) lightPositions.push({ x, z });
       }
+    }
+
+    for (const { x, z } of lightPositions) {
+      const cx = x * TILE + TILE / 2;
+      const cz = z * TILE + TILE / 2;
+
+      const frame = new THREE.Mesh(
+        new THREE.BoxGeometry(1.6, 0.06, 0.25),
+        fixtureMat
+      );
+      frame.position.set(cx, ROOM_H - 0.03, cz);
+      this.object3d.add(frame);
+
+      const panel = new THREE.Mesh(
+        new THREE.PlaneGeometry(1.4, 0.15),
+        panelMat
+      );
+      panel.rotation.x = Math.PI / 2;
+      panel.position.set(cx, ROOM_H - 0.06, cz);
+      this.object3d.add(panel);
     }
 
     const flickerPositions = [
@@ -502,119 +633,335 @@ export class Level0 {
     }
   }
 
-  _createProps() {
-    const shelfMat = new THREE.MeshStandardMaterial({ color: 0x886644, roughness: 0.9 });
-    const metalMat = new THREE.MeshStandardMaterial({ color: 0x777777, roughness: 0.6, metalness: 0.3 });
-    const coolerMat = new THREE.MeshStandardMaterial({ color: 0xbbcccc, roughness: 0.2, transparent: true, opacity: 0.6 });
+  _createFilingCabinet(cx, cz) {
+    const metalMat = new THREE.MeshStandardMaterial({ color: 0x777777, metalness: 0.5, roughness: 0.4 });
+    const drawerMat = new THREE.MeshStandardMaterial({ color: 0x666666, metalness: 0.4, roughness: 0.5 });
+    const handleMat = new THREE.MeshStandardMaterial({ color: 0x999999, metalness: 0.7, roughness: 0.2 });
 
+    const cab = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.0, 0.4), metalMat);
+    body.position.y = 0.5;
+    cab.add(body);
+
+    for (let i = 0; i < 3; i++) {
+      const drawer = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.12, 0.36), drawerMat);
+      drawer.position.set(0, 0.15 + i * 0.28, 0.01);
+      cab.add(drawer);
+
+      const handle = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.01, 0.01), handleMat);
+      handle.position.set(0, 0.15 + i * 0.28, 0.2);
+      cab.add(handle);
+    }
+    cab.position.set(cx, 0, cz);
+    return cab;
+  }
+
+  _createShelf(cx, cz) {
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x8a6a44, roughness: 0.9 });
+    const metalMat = new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.6, roughness: 0.3 });
+
+    const shelf = new THREE.Group();
+
+    const left = new THREE.Mesh(new THREE.BoxGeometry(0.03, 1.0, 0.3), metalMat);
+    left.position.set(-0.35, 0.5, 0);
+    shelf.add(left);
+
+    const right = new THREE.Mesh(new THREE.BoxGeometry(0.03, 1.0, 0.3), metalMat);
+    right.position.set(0.35, 0.5, 0);
+    shelf.add(right);
+
+    for (let i = 0; i < 4; i++) {
+      const board = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.025, 0.28), woodMat);
+      board.position.set(0, 0.05 + i * 0.25, 0);
+      shelf.add(board);
+    }
+    shelf.position.set(cx, 0, cz);
+    return shelf;
+  }
+
+  _createWaterCooler(cx, cz) {
+    const baseMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.6 });
+    const blueMat = new THREE.MeshPhysicalMaterial({
+      color: 0x88bbdd,
+      transparent: true,
+      opacity: 0.4,
+      roughness: 0.1,
+      metalness: 0,
+    });
+    const metalMat = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.5, roughness: 0.3 });
+
+    const cooler = new THREE.Group();
+    const base = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.7, 0.3), baseMat);
+    base.position.y = 0.35;
+    cooler.add(base);
+
+    const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 0.4, 10), blueMat);
+    tank.position.y = 0.9;
+    cooler.add(tank);
+
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.04, 10), metalMat);
+    cap.position.y = 1.1;
+    cooler.add(cap);
+
+    const spigot = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.02, 0.06, 6), metalMat);
+    spigot.position.set(0.12, 0.35, 0);
+    spigot.rotation.z = Math.PI / 2;
+    cooler.add(spigot);
+
+    cooler.position.set(cx, 0, cz);
+    return cooler;
+  }
+
+  _createProps() {
     const cells = [];
     for (let z = 0; z < GH; z++) {
       for (let x = 0; x < GW; x++) {
-        const c = this.grid[z][x];
-        if (c === 'r') cells.push({ x, z });
+        if (this.grid[z][x] === 'r') cells.push({ x, z });
       }
     }
 
-    for (let i = 0; i < Math.min(6, cells.length); i++) {
-      const cell = cells[Math.floor(Math.random() * cells.length)];
-      const cx = cell.x * TILE + TILE / 2 + (Math.random() - 0.5) * 2;
-      const cz = cell.z * TILE + TILE / 2 + (Math.random() - 0.5) * 2;
-
-      const shelf = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.2, 0.3), shelfMat);
-      shelf.position.set(cx, 0.6, cz);
-      this.object3d.add(shelf);
-
-      const s2 = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.04, 0.25), shelfMat);
-      s2.position.set(cx, 0.4, cz);
-      this.object3d.add(s2);
-
-      const s3 = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.04, 0.25), shelfMat);
-      s3.position.set(cx, 0.8, cz);
-      this.object3d.add(s3);
+    const cabCells = cells.filter(() => Math.random() < 0.3);
+    for (const cell of cabCells.slice(0, 4)) {
+      const cx = cell.x * TILE + TILE / 2 + (Math.random() - 0.5) * 1.5;
+      const cz = cell.z * TILE + TILE / 2 + (Math.random() - 0.5) * 1.5;
+      this.object3d.add(this._createFilingCabinet(cx, cz));
     }
 
-    for (let i = 0; i < Math.min(2, cells.length); i++) {
-      const cell = cells[Math.floor(Math.random() * cells.length)];
-      const cx = cell.x * TILE + TILE / 2 + (Math.random() - 0.5) * 2;
-      const cz = cell.z * TILE + TILE / 2 + (Math.random() - 0.5) * 2;
+    const shelfCells = cells.filter(() => Math.random() < 0.3);
+    for (const cell of shelfCells.slice(0, 4)) {
+      const cx = cell.x * TILE + TILE / 2 + (Math.random() - 0.5) * 1.5;
+      const cz = cell.z * TILE + TILE / 2 + (Math.random() - 0.5) * 1.5;
+      this.object3d.add(this._createShelf(cx, cz));
+    }
 
-      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.25, 0.8, 10), metalMat);
-      body.position.set(cx, 0.4, cz);
-      this.object3d.add(body);
-
-      const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 0.5, 10), coolerMat);
-      tank.position.set(cx, 0.85, cz);
-      this.object3d.add(tank);
+    const coolerCells = cells.filter(() => Math.random() < 0.15);
+    for (const cell of coolerCells.slice(0, 2)) {
+      const cx = cell.x * TILE + TILE / 2 + (Math.random() - 0.5) * 1.5;
+      const cz = cell.z * TILE + TILE / 2 + (Math.random() - 0.5) * 1.5;
+      this.object3d.add(this._createWaterCooler(cx, cz));
     }
   }
 
-  _spawnItem(type, x, z) {
+  _createItemMesh(type) {
     const g = new THREE.Group();
+
     switch (type) {
       case 'almond_water': {
-        const bMat = new THREE.MeshStandardMaterial({ color: 0x88bbcc, transparent: true, opacity: 0.7, roughness: 0.2 });
-        const b = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 0.3, 8), bMat);
-        b.position.y = 0.15; g.add(b);
-        const cMat = new THREE.MeshStandardMaterial({ color: 0x334455 });
-        const c = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.03, 8), cMat);
-        c.position.y = 0.3; g.add(c);
-        const lMat = new THREE.MeshStandardMaterial({ color: 0xaaddff });
-        const l = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.085, 0.1, 8), lMat);
-        l.position.y = 0.15; l.scale.set(1, 1, 1.01); g.add(l);
+        const glassMat = new THREE.MeshPhysicalMaterial({
+          color: 0xaaccee,
+          transparent: true,
+          opacity: 0.5,
+          roughness: 0.1,
+          metalness: 0,
+          clearcoat: 0.3,
+        });
+        const liquidMat = new THREE.MeshPhysicalMaterial({
+          color: 0x88bbdd,
+          transparent: true,
+          opacity: 0.6,
+          roughness: 0,
+          metalness: 0,
+        });
+        const labelMat = new THREE.MeshStandardMaterial({ color: 0x446688, roughness: 0.6 });
+        const capMat = new THREE.MeshStandardMaterial({ color: 0x335577, roughness: 0.4 });
+
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.13, 0.32, 12), glassMat);
+        body.position.y = 0.16;
+        g.add(body);
+
+        const liquid = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 0.2, 12), liquidMat);
+        liquid.position.y = 0.1;
+        g.add(liquid);
+
+        const label = new THREE.Mesh(new THREE.CylinderGeometry(0.105, 0.105, 0.1, 12), labelMat);
+        label.position.y = 0.16;
+        g.add(label);
+
+        const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.09, 0.04, 12), capMat);
+        cap.position.y = 0.34;
+        g.add(cap);
+
         break;
       }
       case 'flashlight': {
-        const bMat = new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.7, roughness: 0.3 });
-        const b = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.25, 8), bMat);
-        b.rotation.x = Math.PI / 2; g.add(b);
-        const hMat = new THREE.MeshStandardMaterial({ color: 0x666666, metalness: 0.8 });
-        const h = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.06, 0.04, 8), hMat);
-        h.rotation.x = Math.PI / 2; h.position.x = 0.14; g.add(h);
-        const lMat = new THREE.MeshStandardMaterial({ color: 0xffffcc, emissive: 0xffffaa, emissiveIntensity: 0.1 });
-        const l = new THREE.Mesh(new THREE.CircleGeometry(0.045, 8), lMat);
-        l.position.x = 0.16; g.add(l);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.6, roughness: 0.3 });
+        const headMat = new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.7, roughness: 0.2 });
+        const lensMat = new THREE.MeshStandardMaterial({ color: 0xffffcc, emissive: 0xffffaa, emissiveIntensity: 0.2, transparent: true, opacity: 0.6 });
+        const gripMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9 });
+
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.28, 10), bodyMat);
+        body.rotation.x = Math.PI / 2;
+        g.add(body);
+
+        const head = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.07, 0.06, 10), headMat);
+        head.rotation.x = Math.PI / 2;
+        head.position.x = 0.16;
+        g.add(head);
+
+        const lens = new THREE.Mesh(new THREE.CircleGeometry(0.045, 10), lensMat);
+        lens.position.x = 0.19;
+        g.add(lens);
+
+        const grip1 = new THREE.Mesh(new THREE.TorusGeometry(0.065, 0.015, 6, 10), gripMat);
+        grip1.rotation.y = Math.PI / 2;
+        grip1.position.x = -0.05;
+        g.add(grip1);
+
+        const grip2 = new THREE.Mesh(new THREE.TorusGeometry(0.065, 0.015, 6, 10), gripMat);
+        grip2.rotation.y = Math.PI / 2;
+        grip2.position.x = 0.05;
+        g.add(grip2);
+
+        const button = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.015, 0.015), new THREE.MeshStandardMaterial({ color: 0xcc3333 }));
+        button.position.set(0, 0.05, 0);
+        g.add(button);
+
         break;
       }
       case 'batteries': {
-        const mat = new THREE.MeshStandardMaterial({ color: 0xcc3333 });
-        const b1 = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.12, 6), mat);
-        b1.rotation.x = Math.PI / 2; g.add(b1);
-        const b2 = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.12, 6), mat);
-        b2.rotation.x = Math.PI / 2; b2.position.set(0, 0, 0.1); g.add(b2);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0xcc3333, roughness: 0.5 });
+        const topMat = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.5, roughness: 0.3 });
+        const labelMat = new THREE.MeshStandardMaterial({ color: 0xaa2222, roughness: 0.6 });
+
+        for (let i = -1; i <= 1; i += 2) {
+          const bat = new THREE.Group();
+          const body = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.12, 8), bodyMat);
+          body.position.y = 0.06;
+          body.rotation.x = Math.PI / 2;
+          bat.add(body);
+
+          const label = new THREE.Mesh(new THREE.CylinderGeometry(0.057, 0.057, 0.03, 8), labelMat);
+          label.position.y = 0.06;
+          label.rotation.x = Math.PI / 2;
+          label.position.x = 0.02;
+          bat.add(label);
+
+          const pos = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.035, 0.015, 8), topMat);
+          pos.position.y = 0.06;
+          pos.rotation.x = Math.PI / 2;
+          pos.position.x = 0.075;
+          bat.add(pos);
+
+          bat.position.x = i * 0.07;
+          g.add(bat);
+        }
         break;
       }
       case 'lighter': {
-        const mat = new THREE.MeshStandardMaterial({ color: 0x3366cc });
-        const b = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.12, 0.03), mat);
-        b.position.y = 0.06; g.add(b);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x88bbdd, roughness: 0.3 });
+        const metalMat = new THREE.MeshStandardMaterial({ color: 0x777777, metalness: 0.6, roughness: 0.3 });
+        const fuelMat = new THREE.MeshStandardMaterial({ color: 0x88ccff, transparent: true, opacity: 0.4 });
+
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.14, 0.025), bodyMat);
+        body.position.y = 0.07;
+        g.add(body);
+
+        const fuel = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.08, 0.015), fuelMat);
+        fuel.position.y = 0.05;
+        g.add(fuel);
+
+        const striker = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.015, 0.01), metalMat);
+        striker.position.y = 0.14;
+        g.add(striker);
+
+        const top = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.01, 0.02), metalMat);
+        top.position.y = 0.145;
+        g.add(top);
+
         break;
       }
       case 'medkit': {
-        const mat = new THREE.MeshStandardMaterial({ color: 0xee4444 });
-        const box = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.08, 0.12), mat);
-        box.position.y = 0.04; g.add(box);
-        const cross = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.02, 0.02), new THREE.MeshStandardMaterial({ color: 0xffffff }));
-        cross.position.set(0, 0.05, 0.06); g.add(cross);
+        const boxMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.4 });
+        const crossMat = new THREE.MeshStandardMaterial({ color: 0xee2222 });
+        const stripeMat = new THREE.MeshStandardMaterial({ color: 0xdd1111 });
+
+        const box = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.08, 0.14), boxMat);
+        box.position.y = 0.04;
+        g.add(box);
+
+        const stripeH = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.015, 0.01), stripeMat);
+        stripeH.position.set(0, 0.045, 0.07);
+        g.add(stripeH);
+
+        const stripeV = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.015, 0.14), stripeMat);
+        stripeV.position.set(0, 0.045, 0);
+        g.add(stripeV);
+
+        const crossH = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.02, 0.02), crossMat);
+        crossH.position.set(0, 0.05, 0.05);
+        g.add(crossH);
+
+        const crossV = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.02, 0.06), crossMat);
+        crossV.position.set(0, 0.05, 0.05);
+        g.add(crossV);
+
+        const lidLine = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.002, 0.12), new THREE.MeshStandardMaterial({ color: 0xcccccc }));
+        lidLine.position.y = 0.075;
+        g.add(lidLine);
+
         break;
       }
       case 'key': {
-        const mat = new THREE.MeshStandardMaterial({ color: 0x44aaff, roughness: 0.3 });
-        const card = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.01, 0.09), mat);
-        card.position.y = 0.005; g.add(card);
+        const keyMat = new THREE.MeshStandardMaterial({ color: 0xccaa44, metalness: 0.7, roughness: 0.2 });
+
+        const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.015, 0.06), keyMat);
+        shaft.position.set(0, 0.005, 0.03);
+        g.add(shaft);
+
+        const head = new THREE.Mesh(new THREE.TorusGeometry(0.025, 0.008, 6, 10), keyMat);
+        head.position.set(0, 0.005, -0.02);
+        g.add(head);
+
+        const tooth1 = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.015, 0.015), keyMat);
+        tooth1.position.set(0, 0.005, 0.05);
+        g.add(tooth1);
+
+        const tooth2 = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.015, 0.01), keyMat);
+        tooth2.position.set(0, 0.005, 0.035);
+        g.add(tooth2);
+
         break;
       }
       case 'note': {
-        const mat = new THREE.MeshStandardMaterial({ color: 0xeeddbb });
-        const n = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.01, 0.12), mat);
-        n.position.y = 0.01; g.add(n);
+        const paperMat = new THREE.MeshStandardMaterial({ color: 0xeeddbb, roughness: 0.9 });
+        const textMat = new THREE.MeshStandardMaterial({ color: 0x554433 });
+        const paperGeo = new THREE.BoxGeometry(0.12, 0.005, 0.14);
+        paperGeo.translate(0, 0.002, 0.03);
+
+        const paper = new THREE.Mesh(paperGeo, paperMat);
+        paper.position.y = 0.002;
+        g.add(paper);
+
+        const paper2 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.005, 0.12), paperMat);
+        paper2.position.set(0.002, 0.004, 0);
+        paper2.rotation.z = 0.02;
+        g.add(paper2);
+
+        const lineMat = new THREE.MeshStandardMaterial({ color: 0x665544 });
+        for (let i = 0; i < 4; i++) {
+          const line = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.001, 0.002), lineMat);
+          line.position.set(0, 0.006, 0.04 - i * 0.025);
+          g.add(line);
+        }
+
+        g.rotation.z = (Math.random() - 0.5) * 0.05;
+        g.rotation.x = (Math.random() - 0.5) * 0.03;
+
         break;
       }
-      default: return;
+      default:
+        return null;
     }
-    g.position.set(x, 0.05, z);
-    this.object3d.add(g);
+    return g;
+  }
+
+  _spawnItem(type, x, z) {
+    const mesh = this._createItemMesh(type);
+    if (!mesh) return;
+    mesh.position.set(x, 0.05, z);
+    this.object3d.add(mesh);
     this.interactables.push({
-      mesh: g,
+      mesh,
       type,
       position: new THREE.Vector3(x, 0.1, z),
     });
@@ -640,23 +987,51 @@ export class Level0 {
   }
 
   _createExit() {
-    const exitMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9 });
-    const glowMat = new THREE.MeshStandardMaterial({ color: 0x445566, emissive: 0x223344, emissiveIntensity: 0.4 });
-
     const px = 54 * TILE + TILE / 2;
     const pz = 13 * TILE + TILE / 2;
 
-    const door = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.4, 0.1), exitMat);
-    door.position.set(px, 1.2, pz);
+    const doorMat = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.7, metalness: 0.3 });
+    const frameMat = new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.4, roughness: 0.5 });
+    const barMat = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.8, roughness: 0.2 });
+    const signMat = new THREE.MeshStandardMaterial({ color: 0xcc4444, emissive: 0xcc2222, emissiveIntensity: 0.6 });
+    const signGlowMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.8 });
+
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(1.4, 2.6, 0.12), frameMat);
+    frame.position.set(px, 1.3, pz);
+    this.object3d.add(frame);
+
+    const door = new THREE.Mesh(new THREE.BoxGeometry(1.1, 2.3, 0.08), doorMat);
+    door.position.set(px, 1.15, pz + 0.02);
     this.object3d.add(door);
 
-    const glow = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.3, 0.05), glowMat);
-    glow.position.set(px, 2.5, pz + 0.05);
-    this.object3d.add(glow);
+    const pushBar = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.02, 0.03), barMat);
+    pushBar.position.set(px, 1.0, pz + 0.07);
+    this.object3d.add(pushBar);
 
-    const sign = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.2, 0.05), glowMat);
-    sign.position.set(px, 2.5, pz + 0.1);
-    this.object3d.add(sign);
+    const barL = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.1, 6), barMat);
+    barL.position.set(px - 0.5, 1.0, pz + 0.07);
+    barL.rotation.x = Math.PI / 2;
+    this.object3d.add(barL);
+
+    const barR = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.1, 6), barMat);
+    barR.position.set(px + 0.5, 1.0, pz + 0.07);
+    barR.rotation.x = Math.PI / 2;
+    this.object3d.add(barR);
+
+    const hingeMat = new THREE.MeshStandardMaterial({ color: 0x666666, metalness: 0.6, roughness: 0.3 });
+    for (const hz of [0.3, -0.3]) {
+      const hinge = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.1, 0.02), hingeMat);
+      hinge.position.set(px - 0.56, hz + 1.15, pz + 0.02);
+      this.object3d.add(hinge);
+    }
+
+    const signBox = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.2, 0.03), signMat);
+    signBox.position.set(px, 2.6, pz + 0.06);
+    this.object3d.add(signBox);
+
+    const glowBg = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.16, 0.002), signGlowMat);
+    glowBg.position.set(px, 2.6, pz + 0.075);
+    this.object3d.add(glowBg);
 
     this.interactables.push({
       mesh: door,
