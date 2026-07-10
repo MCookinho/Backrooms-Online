@@ -565,29 +565,30 @@ export class Level0 {
         const isX = nx !== x;
         const px = x * TILE, pz = z * TILE;
 
+        // Surface spans BOTH tiles (low + high) so the high tile isn't left bare
         if (isX) {
           const verts = new Float32Array([
-            px, h, pz, px + TILE, nh, pz + TILE, px + TILE, nh, pz,
-            px, h, pz, px, h, pz + TILE, px + TILE, nh, pz + TILE,
+            px, h, pz, px + 2 * TILE, nh, pz + TILE, px + 2 * TILE, nh, pz,
+            px, h, pz, px, h, pz + TILE, px + 2 * TILE, nh, pz + TILE,
           ]);
           const g = new THREE.BufferGeometry();
           g.setAttribute('position', new THREE.BufferAttribute(verts, 3));
           g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array([
-            0, 0, 1, 1, 1, 0,
-            0, 0, 0, 1, 1, 1,
+            0, 0, 2, 1, 2, 0,
+            0, 0, 0, 1, 2, 1,
           ]), 2));
           g.computeVertexNormals();
           rampGeoms.push(g);
         } else {
           const verts = new Float32Array([
-            px, h, pz, px + TILE, nh, pz + TILE, px + TILE, h, pz,
-            px, h, pz, px, nh, pz + TILE, px + TILE, nh, pz + TILE,
+            px, h, pz, px + TILE, nh, pz + 2 * TILE, px + TILE, h, pz,
+            px, h, pz, px, nh, pz + 2 * TILE, px + TILE, nh, pz + 2 * TILE,
           ]);
           const g = new THREE.BufferGeometry();
           g.setAttribute('position', new THREE.BufferAttribute(verts, 3));
           g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array([
-            0, 0, 1, 1, 1, 0,
-            0, 0, 0, 1, 1, 1,
+            0, 0, 1, 2, 1, 0,
+            0, 0, 0, 2, 1, 2,
           ]), 2));
           g.computeVertexNormals();
           rampGeoms.push(g);
@@ -596,14 +597,14 @@ export class Level0 {
         const sw = WALL_T;
         if (isX) {
           for (const sz of [pz, pz + TILE]) {
-            const sg = new THREE.BoxGeometry(TILE, dh, sw);
-            sg.translate(px + TILE / 2, h + dh / 2, sz);
+            const sg = new THREE.BoxGeometry(2 * TILE, dh, sw);
+            sg.translate(px + TILE, h + dh / 2, sz);
             sideGeoms.push(sg);
           }
         } else {
           for (const sx of [px, px + TILE]) {
-            const sg = new THREE.BoxGeometry(sw, dh, TILE);
-            sg.translate(sx, h + dh / 2, pz + TILE / 2);
+            const sg = new THREE.BoxGeometry(sw, dh, 2 * TILE);
+            sg.translate(sx, h + dh / 2, pz + TILE);
             sideGeoms.push(sg);
           }
         }
