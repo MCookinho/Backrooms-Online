@@ -127,19 +127,19 @@ export class Level0 {
       this.textures[key] = t;
     };
 
-    loadTex('carpetDiff', "yasu/Yasu's_Backrooms_Material_Pack/Floors/Backrooms_Carpet_01_Color.jpg", 12, 12);
-    loadTex('carpetNorm', "yasu/Yasu's_Backrooms_Material_Pack/Floors/Backrooms_Carpet_01_Normal.jpg", 12, 12);
-    loadTex('carpetRough', "yasu/Yasu's_Backrooms_Material_Pack/Floors/Backrooms_Carpet_01_Roughness.jpg", 12, 12);
-    loadTex('wallDiff', "yasu/Yasu's_Backrooms_Material_Pack/Walls/Backrooms_Wallpaper_01_Color.jpg", 2, 2);
-    loadTex('wallNor', "yasu/Yasu's_Backrooms_Material_Pack/Walls/Backrooms_Wallpaper_01_Normal.jpg", 2, 2);
-    loadTex('wallRough', "yasu/Yasu's_Backrooms_Material_Pack/Walls/Backrooms_Wallpaper_01_Roughness.jpg", 2, 2);
-    loadTex('ceilDiff', "yasu/Yasu's_Backrooms_Material_Pack/Ceilings/Backrooms_Ceiling_01_Color.jpg", 4, 4);
-    loadTex('ceilNor', "yasu/Yasu's_Backrooms_Material_Pack/Ceilings/Backrooms_Ceiling_01_Normal.jpg", 4, 4);
-    loadTex('ceilRough', "yasu/Yasu's_Backrooms_Material_Pack/Ceilings/Backrooms_Ceiling_01_Roughness.jpg", 4, 4);
-    loadTex('lightDiff', 'backrooms/backrooms-ceiling-light-diffuse.png', 1, 1);
-    loadTex('lightEmit', 'backrooms/backrooms-ceiling-light-emission.png', 1, 1);
-    loadTex('lightNor', 'backrooms/backrooms-ceiling-light-normal.png', 1, 1);
-    loadTex('lightRough', 'backrooms/backrooms-ceiling-light-roughness.png', 1, 1);
+    loadTex('carpetDiff', 'assetpack/carpet016_2k_png_color_yellowed.jpg', 12, 12);
+    loadTex('carpetNorm', 'assetpack/carpet016_2k_png_normalgl.jpg', 12, 12);
+    loadTex('carpetRough', 'assetpack/carpet016_2k_png_roughness.jpg', 12, 12);
+    loadTex('wallDiff', 'assetpack/backroom_wallpaper_texture___yellowed_loopable.jpg', 2, 2);
+    loadTex('wallNor', 'assetpack/wallpaper002a_2k_png_normalgl.jpg', 2, 2);
+    loadTex('wallRough', 'assetpack/wallpaper002a_2k_png_roughness.jpg', 2, 2);
+    loadTex('ceilDiff', 'assetpack/officeceiling003_2k_png_color.jpg', 4, 4);
+    loadTex('ceilNor', 'assetpack/officeceiling003_2k_png_normalgl.jpg', 4, 4);
+    loadTex('ceilRough', 'assetpack/officeceiling003_2k_png_metalness_officeceiling003_2k_png_roughness.jpg', 4, 4);
+    loadTex('ceilEmit', 'assetpack/officeceiling003_2k_png_emission.jpg', 4, 4);
+    loadTex('trimDiff', 'assetpack/paper001_2k_png_color.jpg', 1, 1);
+    loadTex('trimNor', 'assetpack/wood050_2k_png_normalgl.jpg', 1, 1);
+    loadTex('trimRough', 'assetpack/wood050_2k_png_roughness.jpg', 1, 1);
 
     const loadModel = (key, filename) => {
       return new Promise((resolve) => {
@@ -306,7 +306,13 @@ export class Level0 {
   }
 
   _buildTrim() {
-    const trimMat = new THREE.MeshStandardMaterial({ color: 0x887755, roughness: 0.9 });
+    const trimMat = new THREE.MeshStandardMaterial({
+      map: this.textures.trimDiff,
+      normalMap: this.textures.trimNor,
+      roughnessMap: this.textures.trimRough,
+      roughness: 0.85,
+      color: 0x887755,
+    });
 
     for (let z = 0; z < GH; z++) {
       for (let x = 0; x < GW; x++) {
@@ -349,11 +355,6 @@ export class Level0 {
     const buzz = [0.4, 0.7, 0.5, 0.9, 0.3, 0.8, 0.6, 0.75, 0.45, 0.85, 0.55, 0.65, 0.95];
     let bi = 0;
 
-    const lightDiffTex = this.textures.lightDiff;
-    const lightEmitTex = this.textures.lightEmit;
-    const lightNorTex = this.textures.lightNor;
-    const lightRoughTex = this.textures.lightRough;
-
     for (const [lx, lz] of lightPositions) {
       if (!this._isWalkable(Math.floor(lx / TILE), Math.floor(lz / TILE))) continue;
       const [gx, gz] = [Math.floor(lx / TILE), Math.floor(lz / TILE)];
@@ -361,14 +362,14 @@ export class Level0 {
       const cz = gz * TILE + TILE / 2;
 
       const fixtureMat = new THREE.MeshStandardMaterial({
-        map: lightDiffTex,
-        emissiveMap: lightEmitTex,
-        normalMap: lightNorTex,
-        roughnessMap: lightRoughTex,
+        map: this.textures.ceilDiff,
+        normalMap: this.textures.ceilNor,
+        roughnessMap: this.textures.ceilRough,
+        emissiveMap: this.textures.ceilEmit,
         emissive: 0xffffff,
-        emissiveIntensity: 1.0,
-        roughness: 0.4,
-        metalness: 0.3,
+        emissiveIntensity: 0.6,
+        roughness: 0.7,
+        metalness: 0.1,
       });
 
       const fixture = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.05, 0.25), fixtureMat);
