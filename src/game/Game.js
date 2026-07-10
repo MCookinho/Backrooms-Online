@@ -323,7 +323,7 @@ export class Game {
     const itemDef = ITEM_DEFS[closest.type];
     if (itemDef) {
       if (this.player.addToInventory({ ...itemDef })) {
-        this.renderer.getScene().remove(closest.mesh);
+        if (closest.mesh.parent) closest.mesh.parent.remove(closest.mesh);
         this.interactables = this.interactables.filter(i => i !== closest);
         this.audio.play('pickup');
         this.hud.showInteractPrompt(`Picked up ${itemDef.name}`);
