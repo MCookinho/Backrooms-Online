@@ -53,12 +53,12 @@ const ITEM_SCALES = {
 
 const FURNITURE_SCALES = {
   water_cooler: 0.103,
-  office_chair: 90,
-  desk: 95,
-  cabinet: 160,
-  file_cabinet: 44,
-  bookshelf: 114,
-  vending_machine: 22,
+  office_chair: 0.8,
+  desk: 1.0,
+  cabinet: 1.0,
+  file_cabinet: 0.84,
+  bookshelf: 1.1,
+  vending_machine: 0.19,
 };
 
 const FURNITURE_MODEL_MAP = {
