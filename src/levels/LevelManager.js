@@ -33,6 +33,9 @@ export class LevelManager {
     if (typeof level.getCollisionGrid === 'function') {
       this.player.setCollisionGrid(level.getCollisionGrid(), 4);
     }
+    if (typeof level.getFloorHeight === 'function') {
+      this.player.setFloorHeightFunc((x, z) => level.getFloorHeight(x, z));
+    }
 
     return level;
   }
@@ -45,6 +48,9 @@ export class LevelManager {
       }
       if (typeof this.currentLevel.getCollisionGrid === 'function') {
         this.player.setCollisionGrid(this.currentLevel.getCollisionGrid(), 4);
+      }
+      if (typeof this.currentLevel.getFloorHeight === 'function') {
+        this.player.setFloorHeightFunc((x, z) => this.currentLevel.getFloorHeight(x, z));
       }
     }
   }

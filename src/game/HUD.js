@@ -1,9 +1,7 @@
 export class HUD {
   constructor() {
     this.healthFill = document.getElementById('health-fill');
-    this.healthText = document.getElementById('health-text');
     this.staminaFill = document.getElementById('stamina-fill');
-    this.staminaText = document.getElementById('stamina-text');
     this.interactPrompt = document.getElementById('interact-prompt');
     this.inventoryPanel = document.getElementById('inventory-panel');
     this.inventoryGrid = document.getElementById('inventory-grid');
@@ -17,9 +15,7 @@ export class HUD {
     const hp = Math.round(player.health / player.maxHealth * 100);
     const sp = Math.round(player.stamina / player.maxStamina * 100);
     this.healthFill.style.width = `${hp}%`;
-    this.healthText.textContent = hp;
     this.staminaFill.style.width = `${sp}%`;
-    this.staminaText.textContent = sp;
   }
 
   showInteractPrompt(text) {

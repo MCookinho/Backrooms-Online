@@ -4,13 +4,13 @@ const PLAYER_HEIGHT = 1.7;
 const PLAYER_RADIUS = 0.3;
 const CROUCH_HEIGHT = 0.8;
 const WALK_SPEED = 3.0;
-const RUN_SPEED = 5.5;
+const RUN_SPEED = 9;
 const CROUCH_SPEED = 1.5;
 const JUMP_FORCE = 5.5;
 const GRAVITY = -12;
 const STAMINA_MAX = 100;
-const STAMINA_DRAIN = 20;
-const STAMINA_REGEN = 15;
+const STAMINA_DRAIN = 50;
+const STAMINA_REGEN = 25;
 const STAMINA_TICK = 0.1;
 const HEALTH_MAX = 100;
 
@@ -53,8 +53,12 @@ export class Player {
     this.wallBoxes = [];
     this.collisionGrid = null;
     this.collisionTileSize = 4;
+    this.getFloorHeight = null;
+    this.audio = null;
     this.flashlightOn = false;
     this.flashlight = null;
+    this._footstepTimer = 0;
+    this._wasGrounded = true;
 
     this._setupCollider();
     this._setupFlashlight();
@@ -85,6 +89,7 @@ export class Player {
     } else {
       this._flashlightOn();
     }
+    if (this.audio) this.audio.play('flashlight');
   }
 
   setWallColliders(boxes) {
@@ -94,6 +99,14 @@ export class Player {
   setCollisionGrid(grid, tileSize) {
     this.collisionGrid = grid;
     this.collisionTileSize = tileSize || 4;
+  }
+
+  setFloorHeightFunc(fn) {
+    this.getFloorHeight = fn;
+  }
+
+  setAudioManager(audio) {
+    this.audio = audio;
   }
 
   _setupCollider() {
@@ -235,6 +248,7 @@ export class Player {
     if (input.isKeyDown('Space') && this.isGrounded) {
       this.velocity.y = JUMP_FORCE;
       this.isGrounded = false;
+      if (this.audio) this.audio.play('jump');
     }
   }
 
@@ -254,16 +268,21 @@ export class Player {
     for (let gz = minZ; gz <= maxZ; gz++) {
       for (let gx = minX; gx <= maxX; gx++) {
         if (gz < 0 || gz >= h || gx < 0 || gx >= w) return true;
-        if (grid[gz][gx] === ' ') {
-          const cMinX = gx * tile;
-          const cMaxX = (gx + 1) * tile;
-          const cMinZ = gz * tile;
-          const cMaxZ = (gz + 1) * tile;
-          const closestX = Math.max(cMinX, Math.min(wx, cMaxX));
-          const closestZ = Math.max(cMinZ, Math.min(wz, cMaxZ));
-          const dx = wx - closestX;
-          const dz = wz - closestZ;
-          if (dx * dx + dz * dz < r * r) return true;
+        const cMinX = gx * tile;
+        const cMaxX = (gx + 1) * tile;
+        const cMinZ = gz * tile;
+        const cMaxZ = (gz + 1) * tile;
+        const closestX = Math.max(cMinX, Math.min(wx, cMaxX));
+        const closestZ = Math.max(cMinZ, Math.min(wz, cMaxZ));
+        const dx = wx - closestX;
+        const dz = wz - closestZ;
+        if (dx * dx + dz * dz >= r * r) continue;
+
+        if (grid[gz][gx] === ' ') return true;
+
+        if (this.getFloorHeight) {
+          const fh = this.getFloorHeight(wx, wz);
+          if (fh !== null && Math.abs(this.position.y - fh) > 0.5) return true;
         }
       }
     }
@@ -282,13 +301,7 @@ export class Player {
     const dx = this.velocity.x * delta;
     const dz = this.velocity.z * delta;
 
-    newPos.y += this.velocity.y * delta;
-    if (newPos.y <= 0) {
-      newPos.y = 0;
-      this.velocity.y = 0;
-      this.isGrounded = true;
-    }
-
+    // Horizontal movement first
     if (this.collisionGrid) {
       if (!this._collidesWithGrid(newPos.x + dx, newPos.z + dz)) {
         newPos.x += dx;
@@ -317,6 +330,37 @@ export class Player {
         newPos.z = this.position.z;
       }
     }
+
+    // Vertical: gravity and floor clamp at the final (x,z)
+    newPos.y += this.velocity.y * delta;
+    const floorY = this.getFloorHeight ? this.getFloorHeight(newPos.x, newPos.z) : 0;
+    if (floorY !== null && newPos.y <= floorY) {
+      newPos.y = floorY;
+      this.velocity.y = 0;
+      this.isGrounded = true;
+    } else {
+      this.isGrounded = false;
+    }
+
+    const wasGrounded = this._wasGrounded;
+    this._wasGrounded = this.isGrounded;
+
+    if (!wasGrounded && this.isGrounded && this.audio) {
+      this.audio.play('land');
+    }
+
+    if (this.isGrounded && this.isMoving && this.audio) {
+      const footSpeed = this.isCrouching ? CROUCH_SPEED : (this.isRunning ? RUN_SPEED : WALK_SPEED);
+      this._footstepTimer -= delta;
+      if (this._footstepTimer <= 0) {
+        const interval = 0.45 / Math.max(footSpeed / WALK_SPEED, 0.5);
+        this._footstepTimer = interval;
+        this.audio.play(this.isRunning ? 'footstep_run' : 'footstep');
+      }
+    }
+
+    // Fall into void → die
+    if (newPos.y < -10) this.die();
 
     this.position.copy(newPos);
     this.collider.position.x = this.position.x;

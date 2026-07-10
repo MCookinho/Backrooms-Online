@@ -47,6 +47,7 @@ export class Game {
 
   async init() {
     this.audio.init();
+    this.player.setAudioManager(this.audio);
 
     try {
       this._setLoadingProgress(8, 'SIGNAL ACQUIRING...');
