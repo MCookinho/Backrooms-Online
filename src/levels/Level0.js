@@ -4,79 +4,106 @@ const TILE = 4;
 const ROOM_H = 3.5;
 const WALL_T = 0.15;
 
-const MAP_DATA = [
-  "                                   ",
-  "           ..........             ",
-  "           .rrrrrrrr.            ",
-  "           ..........             ",
-  "     .....S..........rrrr..       ",
-  "     .rrr.............rrrr..      ",
-  "     ....rrrrrr.............       ",
-  "         .......                  ",
-  "         .rrr.    .....           ",
-  "         ....    .rrrrr.          ",
-  "         .rrr.   .......          ",
-  "         ....      ...            ",
-  "                  .E.             ",
-  "                                   ",
-  "                                   ",
-  "                                   ",
-  "                                   ",
-  "                                   ",
-  "                                   ",
-  "                                   ",
+const GW = 60;
+const GH = 30;
+
+const SECTORS = [
+  [22, 11, 4, 3, 'spawn'],
+  [5, 13, 48, 1, 'hall'],
+  [3, 13, 2, 1, 'hall'],
+  [23, 6, 1, 7, 'hall'],
+  [22, 4, 3, 2, 'room'],
+  [30, 7, 1, 6, 'hall'],
+  [29, 5, 3, 2, 'room'],
+  [13, 7, 1, 6, 'hall'],
+  [12, 5, 3, 2, 'room'],
+  [23, 14, 1, 10, 'hall'],
+  [22, 24, 3, 2, 'room'],
+  [30, 14, 1, 8, 'hall'],
+  [29, 22, 3, 2, 'room'],
+  [13, 14, 1, 8, 'hall'],
+  [12, 22, 3, 2, 'room'],
+  [47, 13, 6, 1, 'hall'],
+  [50, 10, 3, 3, 'room'],
+  [53, 12, 3, 3, 'exit'],
+  [17, 9, 1, 4, 'hall'],
+  [17, 14, 1, 4, 'hall'],
+  [1, 12, 2, 3, 'room'],
+  [42, 3, 3, 3, 'room'],
+  [43, 6, 1, 3, 'hall'],
+  [37, 7, 1, 6, 'hall'],
+  [37, 6, 1, 1, 'hall'],
+  [37, 5, 2, 1, 'room'],
+  [38, 14, 1, 5, 'hall'],
+  [37, 19, 3, 2, 'room'],
+  [7, 15, 1, 3, 'hall'],
+  [7, 14, 1, 1, 'hall'],
+  [6, 18, 3, 2, 'room'],
+  [43, 9, 1, 4, 'hall'],
 ];
 
-const GW = MAP_DATA[0].length;
-const GH = MAP_DATA.length;
-
-const SPAWN = new THREE.Vector3((12 + 0.5) * TILE, 0, (4 + 0.5) * TILE);
-
 const ITEM_PLACEMENTS = [
-  ['almond_water', 13, 2],
-  ['almond_water', 8, 5],
-  ['almond_water', 25, 4],
-  ['almond_water', 19, 9],
-  ['flashlight', 16, 5],
-  ['batteries', 11, 7],
-  ['batteries', 21, 4],
-  ['batteries', 12, 11],
-  ['lighter', 10, 8],
-  ['lighter', 19, 6],
-  ['medkit', 15, 2],
-  ['medkit', 18, 10],
-  ['note', 10, 5],
-  ['note', 24, 5],
-  ['note', 20, 11],
-  ['key', 20, 12],
+  ['flashlight', 14, 5],
+  ['almond_water', 13, 5],
+  ['almond_water', 30, 5],
+  ['almond_water', 23, 24],
+  ['almond_water', 29, 22],
+  ['batteries', 10, 13],
+  ['batteries', 33, 13],
+  ['batteries', 23, 14],
+  ['lighter', 37, 5],
+  ['lighter', 50, 10],
+  ['medkit', 22, 4],
+  ['medkit', 39, 19],
+  ['note', 12, 22],
+  ['note', 42, 3],
+  ['note', 25, 11],
+  ['key', 51, 13],
 ];
 
 const ENTITY_PLACEMENTS = [
-  ['hound', 18, 4, { speed: 1.8, aggroRange: 7, damage: 12, patrolRadius: 3 }],
-  ['hound', 22, 5, { speed: 1.6, aggroRange: 8, damage: 10, patrolRadius: 4 }],
-  ['hound', 9, 6, { speed: 2.0, aggroRange: 6, damage: 15, patrolRadius: 2 }],
-  ['faceling', 11, 1, { speed: 1.0, aggroRange: 5, damage: 8, patrolRadius: 3 }],
-  ['faceling', 19, 9, { speed: 0.9, aggroRange: 6, damage: 10, patrolRadius: 4 }],
-  ['faceling', 11, 10, { speed: 1.1, aggroRange: 5, damage: 8, patrolRadius: 3 }],
-  ['duller', 16, 2, {}],
-  ['duller', 10, 10, {}],
-  ['duller', 26, 4, {}],
+  ['hound', 30, 14, { speed: 1.8, aggroRange: 8, damage: 12, patrolRadius: 4 }],
+  ['hound', 8, 13, { speed: 1.6, aggroRange: 7, damage: 15, patrolRadius: 3 }],
+  ['faceling', 12, 5, { speed: 0.9, aggroRange: 5, damage: 8, patrolRadius: 3 }],
+  ['faceling', 29, 22, { speed: 1.0, aggroRange: 6, damage: 10, patrolRadius: 4 }],
+  ['faceling', 38, 14, { speed: 0.8, aggroRange: 5, damage: 8, patrolRadius: 3 }],
+  ['duller', 50, 10, {}],
+  ['duller', 6, 18, {}],
 ];
 
 export class Level0 {
   constructor() {
-    this.spawnPoint = SPAWN.clone();
+    this.spawnPoint = new THREE.Vector3((23 + 0.5) * TILE, 0, (12 + 0.5) * TILE);
     this.object3d = new THREE.Group();
     this.interactables = [];
     this.props = [];
     this.lights = [];
     this.wallBoxes = [];
     this.entities = [];
+    this.grid = null;
+  }
+
+  _initGrid() {
+    this.grid = Array.from({ length: GH }, () => Array(GW).fill(' '));
+    for (const [x, z, w, h, type] of SECTORS) {
+      for (let dz = 0; dz < h; dz++) {
+        for (let dx = 0; dx < w; dx++) {
+          const cx = x + dx;
+          const cz = z + dz;
+          if (cx >= 0 && cx < GW && cz >= 0 && cz < GH) {
+            if (type === 'spawn') this.grid[cz][cx] = 'S';
+            else if (type === 'exit') this.grid[cz][cx] = 'E';
+            else this.grid[cz][cx] = type === 'hall' ? '.' : 'r';
+          }
+        }
+      }
+    }
   }
 
   async load(scene) {
     this.object3d = new THREE.Group();
     scene.add(this.object3d);
+    this._initGrid();
     this.textureLoader = new THREE.TextureLoader();
     this._loadTextures();
     this._buildLevel();
@@ -91,8 +118,8 @@ export class Level0 {
       t.repeat.set(rx, ry);
       this.textures[name] = t;
     };
-    load('wallDiff', 'backrooms-wall-diffuse.png', 2, 1);
-    load('wallNor', 'backrooms-wall-normal.png', 2, 1);
+    load('wallDiff', 'backrooms-wall-diffuse.png', 2, 2);
+    load('wallNor', 'backrooms-wall-normal.png', 2, 2);
     load('ceilDiff', 'backrooms-ceiling-tile-diffuse.png', 4, 4);
     load('ceilNor', 'backrooms-ceiling-tile-normal.png', 4, 4);
     load('ceilRough', 'backrooms-ceiling-tile-roughness.png', 4, 4);
@@ -133,16 +160,16 @@ export class Level0 {
 
   _isWalkable(x, z) {
     if (x < 0 || x >= GW || z < 0 || z >= GH) return false;
-    return MAP_DATA[z][x] !== ' ';
+    return this.grid[z][x] !== ' ';
   }
 
   _buildFloor() {
-    const tex = this._generateFloorTexture();
-    const roughTex = this._generateFloorRoughness();
+    const tex = this._generateCarpetTexture();
+    const roughTex = this._generateCarpetRoughness();
     const floorMat = new THREE.MeshStandardMaterial({
       map: tex,
       roughnessMap: roughTex,
-      roughness: 0.8,
+      roughness: 0.85,
       metalness: 0,
     });
 
@@ -162,7 +189,10 @@ export class Level0 {
   }
 
   _buildCeiling() {
-    const ceilMat = this._createCeilingMaterial();
+    const ceilMat = new THREE.MeshStandardMaterial({
+      color: 0xddccbb,
+      roughness: 0.95,
+    });
     for (let z = 0; z < GH; z++) {
       for (let x = 0; x < GW; x++) {
         if (!this._isWalkable(x, z)) continue;
@@ -183,16 +213,6 @@ export class Level0 {
       normalMap: this.textures.wallNor,
       roughness: 0.85,
       color: 0xccbb77,
-    });
-  }
-
-  _createCeilingMaterial() {
-    return new THREE.MeshStandardMaterial({
-      map: this.textures.ceilDiff,
-      normalMap: this.textures.ceilNor,
-      roughnessMap: this.textures.ceilRough,
-      roughness: 0.9,
-      color: 0xccbb99,
     });
   }
 
@@ -248,38 +268,36 @@ export class Level0 {
 
   _buildTrim() {
     const trimMat = new THREE.MeshStandardMaterial({ color: 0x887755, roughness: 0.9 });
-    const trimH = 0.1;
-    const trimD = 0.02;
 
     for (let z = 0; z < GH; z++) {
       for (let x = 0; x < GW; x++) {
         if (!this._isWalkable(x, z)) continue;
 
         if (z === 0 || !this._isWalkable(x, z - 1)) {
-          const t = new THREE.Mesh(new THREE.BoxGeometry(TILE, trimH, trimD), trimMat);
-          t.position.set(x * TILE + TILE / 2, trimH / 2, z * TILE);
+          const t = new THREE.Mesh(new THREE.BoxGeometry(TILE, 0.1, 0.02), trimMat);
+          t.position.set(x * TILE + TILE / 2, 0.05, z * TILE);
           this.object3d.add(t);
         }
         if (z === GH - 1 || !this._isWalkable(x, z + 1)) {
-          const t = new THREE.Mesh(new THREE.BoxGeometry(TILE, trimH, trimD), trimMat);
-          t.position.set(x * TILE + TILE / 2, trimH / 2, z * TILE + TILE);
+          const t = new THREE.Mesh(new THREE.BoxGeometry(TILE, 0.1, 0.02), trimMat);
+          t.position.set(x * TILE + TILE / 2, 0.05, z * TILE + TILE);
           this.object3d.add(t);
         }
         if (x === 0 || !this._isWalkable(x - 1, z)) {
-          const t = new THREE.Mesh(new THREE.BoxGeometry(trimD, trimH, TILE), trimMat);
-          t.position.set(x * TILE, trimH / 2, z * TILE + TILE / 2);
+          const t = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.1, TILE), trimMat);
+          t.position.set(x * TILE, 0.05, z * TILE + TILE / 2);
           this.object3d.add(t);
         }
         if (x === GW - 1 || !this._isWalkable(x + 1, z)) {
-          const t = new THREE.Mesh(new THREE.BoxGeometry(trimD, trimH, TILE), trimMat);
-          t.position.set(x * TILE + TILE, trimH / 2, z * TILE + TILE / 2);
+          const t = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.1, TILE), trimMat);
+          t.position.set(x * TILE + TILE, 0.05, z * TILE + TILE / 2);
           this.object3d.add(t);
         }
       }
     }
   }
 
-  _generateFloorTexture() {
+  _generateCarpetTexture() {
     const size = 512;
     const canvas = document.createElement('canvas');
     canvas.width = size;
@@ -299,53 +317,53 @@ export class Level0 {
     }
     ctx.putImageData(imgData, 0, 0);
 
-    const tw = 32, th = 32;
-    ctx.strokeStyle = 'rgba(160, 130, 70, 0.25)';
+    const tw = 64, th = 64;
+    ctx.strokeStyle = 'rgba(170, 140, 80, 0.2)';
     ctx.lineWidth = 1.5;
     for (let py = 0; py < size; py += th) {
       for (let px = 0; px < size; px += tw) {
         const cx = px + tw / 2, cy = py + th / 2;
         ctx.beginPath();
-        ctx.moveTo(cx, cy - th / 2 + 2);
-        ctx.lineTo(cx + tw / 2 - 2, cy);
-        ctx.lineTo(cx, cy + th / 2 - 2);
-        ctx.lineTo(cx - tw / 2 + 2, cy);
+        ctx.moveTo(cx, cy - th / 2 + 4);
+        ctx.lineTo(cx + tw / 2 - 4, cy);
+        ctx.lineTo(cx, cy + th / 2 - 4);
+        ctx.lineTo(cx - tw / 2 + 4, cy);
         ctx.closePath();
         ctx.stroke();
       }
     }
 
-    ctx.strokeStyle = 'rgba(140, 110, 50, 0.2)';
-    ctx.lineWidth = 1;
-    for (let py = 0; py < size; py += th) {
-      for (let px = 0; px < size; px += tw) {
-        const cx = px + tw / 2, cy = py + th / 2;
+    ctx.strokeStyle = 'rgba(200, 180, 120, 0.35)';
+    ctx.lineWidth = 2;
+    for (let py = 0; py < size; py += th * 2) {
+      for (let px = 0; px < size; px += tw * 2) {
+        const cx = px + tw, cy = py + th;
         ctx.beginPath();
-        ctx.moveTo(cx, cy - th / 2 + 6);
-        ctx.lineTo(cx + tw / 2 - 6, cy);
-        ctx.lineTo(cx, cy + th / 2 - 6);
-        ctx.lineTo(cx - tw / 2 + 6, cy);
+        ctx.moveTo(cx, cy - th + 4);
+        ctx.lineTo(cx + tw - 4, cy);
+        ctx.lineTo(cx, cy + th - 4);
+        ctx.lineTo(cx - tw + 4, cy);
         ctx.closePath();
         ctx.stroke();
       }
     }
 
-    ctx.fillStyle = 'rgba(150, 120, 70, 0.06)';
-    for (let i = 0; i < 60; i++) {
+    ctx.fillStyle = 'rgba(160, 130, 80, 0.04)';
+    for (let i = 0; i < 40; i++) {
       const sx = Math.random() * size, sy = Math.random() * size;
       ctx.beginPath();
-      ctx.ellipse(sx, sy, 10 + Math.random() * 20, 8 + Math.random() * 16, Math.random() * Math.PI, 0, Math.PI * 2);
+      ctx.ellipse(sx, sy, 15 + Math.random() * 30, 10 + Math.random() * 20, Math.random() * Math.PI, 0, Math.PI * 2);
       ctx.fill();
     }
 
     const tex = new THREE.CanvasTexture(canvas);
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    tex.repeat.set(8, 8);
+    tex.repeat.set(12, 12);
     tex.anisotropy = 4;
     return tex;
   }
 
-  _generateFloorRoughness() {
+  _generateCarpetRoughness() {
     const size = 256;
     const canvas = document.createElement('canvas');
     canvas.width = size;
@@ -366,64 +384,44 @@ export class Level0 {
     }
     ctx.putImageData(imgData, 0, 0);
 
-    ctx.fillStyle = 'rgba(60, 60, 60, 0.3)';
-    for (let i = 0; i < 40; i++) {
+    ctx.fillStyle = 'rgba(60, 60, 60, 0.2)';
+    for (let i = 0; i < 30; i++) {
       const sx = Math.random() * size, sy = Math.random() * size;
       ctx.beginPath();
-      ctx.ellipse(sx, sy, 15 + Math.random() * 25, 12 + Math.random() * 20, Math.random() * Math.PI, 0, Math.PI * 2);
+      ctx.ellipse(sx, sy, 20 + Math.random() * 30, 15 + Math.random() * 25, Math.random() * Math.PI, 0, Math.PI * 2);
       ctx.fill();
     }
 
     const tex = new THREE.CanvasTexture(canvas);
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    tex.repeat.set(8, 8);
+    tex.repeat.set(12, 12);
     return tex;
   }
 
   _createLights() {
-    const lightDiffTex = this.textures.lightDiff;
-    const lightEmitTex = this.textures.lightEmit;
-    const lightNorTex = this.textures.lightNor;
-    const lightRoughTex = this.textures.lightRough;
-
     const panelMat = new THREE.MeshStandardMaterial({
-      map: lightDiffTex,
-      emissiveMap: lightEmitTex,
-      emissive: 0xffffcc,
-      emissiveIntensity: 1.0,
-      normalMap: lightNorTex,
-      roughnessMap: lightRoughTex,
-      roughness: 0.3,
       color: 0xffeecc,
+      emissive: 0xffeecc,
+      emissiveIntensity: 0.5,
+      roughness: 0.3,
     });
 
     const fixtureMat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.7 });
 
-    const ambient = new THREE.AmbientLight(0xffeedd, 1.4);
+    const ambient = new THREE.AmbientLight(0xffeedd, 1.2);
     this.object3d.add(ambient);
-
-    const dirLight = new THREE.DirectionalLight(0xfff0dd, 0.4);
-    dirLight.position.set(0, 10, 0);
-    this.object3d.add(dirLight);
 
     for (let z = 0; z < GH; z++) {
       for (let x = 0; x < GW; x++) {
         if (!this._isWalkable(x, z)) continue;
-
         const cx = x * TILE + TILE / 2;
         const cz = z * TILE + TILE / 2;
 
-        const fixture = new THREE.Mesh(
-          new THREE.BoxGeometry(0.3, 0.08, 0.3),
-          fixtureMat
-        );
+        const fixture = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.08, 0.3), fixtureMat);
         fixture.position.set(cx, ROOM_H - 0.04, cz);
         this.object3d.add(fixture);
 
-        const panel = new THREE.Mesh(
-          new THREE.PlaneGeometry(0.25, 0.25),
-          panelMat
-        );
+        const panel = new THREE.Mesh(new THREE.PlaneGeometry(0.25, 0.25), panelMat);
         panel.rotation.x = Math.PI / 2;
         panel.position.set(cx, ROOM_H - 0.08, cz);
         this.object3d.add(panel);
@@ -431,12 +429,12 @@ export class Level0 {
     }
 
     const flickerPositions = [
-      [12, 4], [18, 4], [11, 2], [10, 8], [19, 9], [11, 10],
+      [23, 9], [30, 12], [13, 10], [23, 17], [38, 10], [10, 12],
     ];
 
     for (const [lx, lz] of flickerPositions) {
       if (!this._isWalkable(lx, lz)) continue;
-      const pl = new THREE.PointLight(0xffeedd, 0.5, TILE * 5);
+      const pl = new THREE.PointLight(0xffeedd, 0.3, TILE * 6);
       pl.position.set(lx * TILE + TILE / 2, ROOM_H - 0.5, lz * TILE + TILE / 2);
       pl.userData = {
         timer: Math.random() * 100,
@@ -451,7 +449,7 @@ export class Level0 {
     const stainMat = new THREE.MeshStandardMaterial({
       color: 0x554433,
       transparent: true,
-      opacity: 0.15,
+      opacity: 0.12,
       roughness: 1,
       side: THREE.DoubleSide,
     });
@@ -465,7 +463,7 @@ export class Level0 {
     }
 
     if (wallCells.length === 0) return;
-    for (let i = 0; i < 80; i++) {
+    for (let i = 0; i < 60; i++) {
       const cell = wallCells[Math.floor(Math.random() * wallCells.length)];
       const dirs = [];
       if (cell.z === 0 || !this._isWalkable(cell.x, cell.z - 1)) dirs.push(0);
@@ -507,37 +505,36 @@ export class Level0 {
   _createProps() {
     const shelfMat = new THREE.MeshStandardMaterial({ color: 0x886644, roughness: 0.9 });
     const metalMat = new THREE.MeshStandardMaterial({ color: 0x777777, roughness: 0.6, metalness: 0.3 });
-    const waterCoolerMat = new THREE.MeshStandardMaterial({ color: 0xbbcccc, roughness: 0.2, transparent: true, opacity: 0.6 });
+    const coolerMat = new THREE.MeshStandardMaterial({ color: 0xbbcccc, roughness: 0.2, transparent: true, opacity: 0.6 });
 
-    const propCells = [];
+    const cells = [];
     for (let z = 0; z < GH; z++) {
       for (let x = 0; x < GW; x++) {
-        const c = MAP_DATA[z][x];
-        if (c === 'r') propCells.push({ x, z });
+        const c = this.grid[z][x];
+        if (c === 'r') cells.push({ x, z });
       }
     }
 
-    for (let i = 0; i < Math.min(8, propCells.length); i++) {
-      const cell = propCells[Math.floor(Math.random() * propCells.length)];
+    for (let i = 0; i < Math.min(6, cells.length); i++) {
+      const cell = cells[Math.floor(Math.random() * cells.length)];
       const cx = cell.x * TILE + TILE / 2 + (Math.random() - 0.5) * 2;
       const cz = cell.z * TILE + TILE / 2 + (Math.random() - 0.5) * 2;
 
       const shelf = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.2, 0.3), shelfMat);
       shelf.position.set(cx, 0.6, cz);
       this.object3d.add(shelf);
-      this.props.push(shelf);
 
-      const shelf2 = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.04, 0.25), shelfMat);
-      shelf2.position.set(cx, 0.4, cz);
-      this.object3d.add(shelf2);
+      const s2 = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.04, 0.25), shelfMat);
+      s2.position.set(cx, 0.4, cz);
+      this.object3d.add(s2);
 
-      const shelf3 = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.04, 0.25), shelfMat);
-      shelf3.position.set(cx, 0.8, cz);
-      this.object3d.add(shelf3);
+      const s3 = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.04, 0.25), shelfMat);
+      s3.position.set(cx, 0.8, cz);
+      this.object3d.add(s3);
     }
 
-    for (let i = 0; i < Math.min(3, propCells.length); i++) {
-      const cell = propCells[Math.floor(Math.random() * propCells.length)];
+    for (let i = 0; i < Math.min(2, cells.length); i++) {
+      const cell = cells[Math.floor(Math.random() * cells.length)];
       const cx = cell.x * TILE + TILE / 2 + (Math.random() - 0.5) * 2;
       const cz = cell.z * TILE + TILE / 2 + (Math.random() - 0.5) * 2;
 
@@ -545,25 +542,13 @@ export class Level0 {
       body.position.set(cx, 0.4, cz);
       this.object3d.add(body);
 
-      const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 0.5, 10), waterCoolerMat);
+      const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 0.5, 10), coolerMat);
       tank.position.set(cx, 0.85, cz);
       this.object3d.add(tank);
     }
   }
 
   _spawnItem(type, x, z) {
-    const mesh = this._createItemMesh(type);
-    if (!mesh) return;
-    mesh.position.set(x, 0.05, z);
-    this.object3d.add(mesh);
-    this.interactables.push({
-      mesh,
-      type,
-      position: new THREE.Vector3(x, 0.1, z),
-    });
-  }
-
-  _createItemMesh(type) {
     const g = new THREE.Group();
     switch (type) {
       case 'almond_water': {
@@ -624,17 +609,20 @@ export class Level0 {
         n.position.y = 0.01; g.add(n);
         break;
       }
-      default:
-        return null;
+      default: return;
     }
-    return g;
+    g.position.set(x, 0.05, z);
+    this.object3d.add(g);
+    this.interactables.push({
+      mesh: g,
+      type,
+      position: new THREE.Vector3(x, 0.1, z),
+    });
   }
 
   _createItems() {
     for (const [type, gx, gz] of ITEM_PLACEMENTS) {
-      const wx = gx * TILE + TILE / 2;
-      const wz = gz * TILE + TILE / 2;
-      this._spawnItem(type, wx, wz);
+      this._spawnItem(type, gx * TILE + TILE / 2, gz * TILE + TILE / 2);
     }
   }
 
@@ -655,8 +643,8 @@ export class Level0 {
     const exitMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9 });
     const glowMat = new THREE.MeshStandardMaterial({ color: 0x445566, emissive: 0x223344, emissiveIntensity: 0.4 });
 
-    const px = 19 * TILE + TILE / 2;
-    const pz = 12 * TILE + TILE / 2;
+    const px = 54 * TILE + TILE / 2;
+    const pz = 13 * TILE + TILE / 2;
 
     const door = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.4, 0.1), exitMat);
     door.position.set(px, 1.2, pz);
@@ -683,7 +671,7 @@ export class Level0 {
     for (const light of this.lights) {
       light.userData.timer += delta;
       const f = Math.sin(light.userData.timer * light.userData.buzzRange * 3);
-      light.intensity = 0.5 * Math.max(0.85, 1 - Math.abs(f * 0.15));
+      light.intensity = 0.3 * Math.max(0.85, 1 - Math.abs(f * 0.15));
     }
   }
 
