@@ -694,31 +694,28 @@ export class Level0 {
 
         const kind = rng();
         if (kind < 0.33) {
+          const outletGroup = new THREE.Group();
+          const faceZ = (nz === z * TILE) ? nz + WALL_T / 2 + 0.003 : nz - WALL_T / 2 - 0.003;
+          const faceX = (nx === x * TILE) ? nx + WALL_T / 2 + 0.003 : nx - WALL_T / 2 - 0.003;
+          outletGroup.position.set(
+            wallDir === 'z' ? decoX : faceX,
+            h + 0.1,
+            wallDir === 'z' ? faceZ : decoZ
+          );
+
           const outletMat = _makeMat('outlet', { color: 0xccc8c0, roughness: 0.4, metalness: 0.1 });
           const outlet = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.055, 0.006), outletMat);
-          outlet.position.set(decoX, h + 0.1, decoZ);
-          if (wallDir === 'z') {
-            const faceZ = (nz === z * TILE) ? nz + WALL_T / 2 + 0.003 : nz - WALL_T / 2 - 0.003;
-            outlet.position.z = faceZ;
-          } else {
-            const faceX = (nx === x * TILE) ? nx + WALL_T / 2 + 0.003 : nx - WALL_T / 2 - 0.003;
-            outlet.position.x = faceX;
-          }
-          this.object3d.add(outlet);
+          outletGroup.add(outlet);
 
           const holeMat = _makeMat('outletHole', { color: 0x332e28, roughness: 0.8 });
           for (const oh of [-0.012, 0.012]) {
             const hole = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.014, 0.007), holeMat);
-            hole.position.copy(outlet.position);
-            if (wallDir === 'z') {
-              hole.position.x += oh;
-              hole.position.z += 0.001;
-            } else {
-              hole.position.z += oh;
-              hole.position.x += 0.001;
-            }
-            this.object3d.add(hole);
+            hole.position.set(oh, 0, 0.001);
+            outletGroup.add(hole);
           }
+
+          if (wallDir === 'x') outletGroup.rotation.y = Math.PI / 2;
+          this.object3d.add(outletGroup);
         } else if (kind < 0.66) {
           const frameStyles = [
             { color: 0xc8b898, roughness: 0.3, metalness: 0.05 },  // warm wood
@@ -733,17 +730,18 @@ export class Level0 {
           const portrait = rng() < 0.5;
           const fw = portrait ? 0.12 + rng() * 0.06 : 0.16 + rng() * 0.12;
           const fh = portrait ? 0.16 + rng() * 0.10 : 0.10 + rng() * 0.06;
-          const frame = new THREE.Mesh(new THREE.BoxGeometry(fw, fh, 0.008), frameMat);
           const fy = h + 0.5 + rng() * (wallH - 0.8);
-          frame.position.set(decoX, fy, decoZ);
-          if (wallDir === 'z') {
-            const faceZ = (nz === z * TILE) ? nz + WALL_T / 2 + 0.003 : nz - WALL_T / 2 - 0.003;
-            frame.position.z = faceZ;
-          } else {
-            const faceX = (nx === x * TILE) ? nx + WALL_T / 2 + 0.003 : nx - WALL_T / 2 - 0.003;
-            frame.position.x = faceX;
-          }
-          this.object3d.add(frame);
+          const frameGroup = new THREE.Group();
+          const fFaceZ = (nz === z * TILE) ? nz + WALL_T / 2 + 0.003 : nz - WALL_T / 2 - 0.003;
+          const fFaceX = (nx === x * TILE) ? nx + WALL_T / 2 + 0.003 : nx - WALL_T / 2 - 0.003;
+          frameGroup.position.set(
+            wallDir === 'z' ? decoX : fFaceX,
+            fy,
+            wallDir === 'z' ? fFaceZ : decoZ
+          );
+
+          const frame = new THREE.Mesh(new THREE.BoxGeometry(fw, fh, 0.008), frameMat);
+          frameGroup.add(frame);
 
           const innerColors = [
             0xf5f0e8, 0xe8e0d0, 0xd8d0c0, 0xf0ebe0, 0xe0d8cc,
@@ -752,10 +750,8 @@ export class Level0 {
           const ic = innerColors[Math.floor(rng() * innerColors.length)];
           const innerMat = _makeMat('frameInner', { color: ic, roughness: 0.6 });
           const inner = new THREE.Mesh(new THREE.BoxGeometry(fw * 0.72, fh * 0.72, 0.009), innerMat);
-          inner.position.copy(frame.position);
-          if (wallDir === 'z') inner.position.z += 0.001;
-          else inner.position.x += 0.001;
-          this.object3d.add(inner);
+          inner.position.z = 0.001;
+          frameGroup.add(inner);
 
           if (rng() < 0.25) {
             const accentMat = _makeMat('frameAccent', {
@@ -764,11 +760,12 @@ export class Level0 {
             });
             const aw = fw * 0.25, ah = fh * 0.15;
             const accent = new THREE.Mesh(new THREE.BoxGeometry(aw, ah, 0.010), accentMat);
-            accent.position.copy(inner.position);
-            if (wallDir === 'z') accent.position.z += 0.001;
-            else accent.position.x += 0.001;
-            this.object3d.add(accent);
+            accent.position.z = 0.002;
+            frameGroup.add(accent);
           }
+
+          if (wallDir === 'x') frameGroup.rotation.y = Math.PI / 2;
+          this.object3d.add(frameGroup);
         } else {
           const scratchMat = _makeMat('scratch', { color: 0x55504a, roughness: 0.6 });
           const sw = wallDir === 'z' ? 0.002 + rng() * 0.015 : 0.025 + rng() * 0.04;
@@ -776,14 +773,14 @@ export class Level0 {
           const sd = wallDir === 'z' ? 0.025 + rng() * 0.04 : 0.002 + rng() * 0.015;
           const scratch = new THREE.Mesh(new THREE.BoxGeometry(sw, sh, sd), scratchMat);
           const sy = h + 0.15 + rng() * (wallH - 0.3);
-          scratch.position.set(decoX, sy, decoZ);
-          if (wallDir === 'z') {
-            const faceZ = (nz === z * TILE) ? nz + WALL_T / 2 + 0.002 : nz - WALL_T / 2 - 0.002;
-            scratch.position.z = faceZ;
-          } else {
-            const faceX = (nx === x * TILE) ? nx + WALL_T / 2 + 0.002 : nx - WALL_T / 2 - 0.002;
-            scratch.position.x = faceX;
-          }
+          const sFaceZ = (nz === z * TILE) ? nz + WALL_T / 2 + 0.002 : nz - WALL_T / 2 - 0.002;
+          const sFaceX = (nx === x * TILE) ? nx + WALL_T / 2 + 0.002 : nx - WALL_T / 2 - 0.002;
+          scratch.position.set(
+            wallDir === 'z' ? decoX : sFaceX,
+            sy,
+            wallDir === 'z' ? sFaceZ : decoZ
+          );
+          if (wallDir === 'x') scratch.rotation.y = Math.PI / 2;
           this.object3d.add(scratch);
         }
       };
