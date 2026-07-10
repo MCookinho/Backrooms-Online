@@ -84,9 +84,10 @@ export class Level0 {
 
   _buildLevel() {
     const layout = this._generateLayout();
+    this.rooms = layout;
 
-    for (const room of layout) {
-      this._createRoom(room);
+    for (let i = 0; i < layout.length; i++) {
+      this._createRoom(layout[i], i);
     }
 
     this._createFluorescentLights(layout);
@@ -162,7 +163,7 @@ export class Level0 {
     return rooms;
   }
 
-  _createRoom(room) {
+  _createRoom(room, roomIndex) {
     const x = room.x * TILE_SIZE;
     const z = room.z * TILE_SIZE;
     const w = room.w * TILE_SIZE;
@@ -204,10 +205,15 @@ export class Level0 {
       if (!conn) continue;
       const dx = conn.x - room.x;
       const dz = conn.z - room.z;
-      if (dz > 0) hasConnection.back = true;
-      else if (dz < 0) hasConnection.front = true;
-      else if (dx > 0) hasConnection.right = true;
-      else if (dx < 0) hasConnection.left = true;
+      let side = '';
+      if (dz > 0) side = 'back';
+      else if (dz < 0) side = 'front';
+      else if (dx > 0) side = 'right';
+      else if (dx < 0) side = 'left';
+
+      if (side && roomIndex < connIdx) {
+        hasConnection[side] = true;
+      }
     }
 
     for (const side of sides) {
@@ -655,8 +661,8 @@ export class Level0 {
   update(delta, player) {
     for (const light of this.lights) {
       light.userData.timer += delta;
-      const flicker = Math.sin(light.userData.timer * light.userData.buzzRange * 10);
-      const flickerAmount = Math.max(0.8, 1 - Math.abs(flicker * 0.2));
+      const flicker = Math.sin(light.userData.timer * light.userData.buzzRange * 3);
+      const flickerAmount = Math.max(0.9, 1 - Math.abs(flicker * 0.1));
       light.intensity = 1.2 * flickerAmount;
     }
   }
