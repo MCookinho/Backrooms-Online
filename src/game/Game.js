@@ -155,8 +155,12 @@ export class Game {
     });
 
     document.addEventListener('keydown', (e) => {
-      if (e.code === 'Escape' && document.pointerLockElement) {
-        document.exitPointerLock();
+      if (e.code === 'Escape') {
+        if (this.inventoryOpen) {
+          this._toggleInventory();
+        } else if (document.pointerLockElement) {
+          document.exitPointerLock();
+        }
       }
     });
 
@@ -262,9 +266,11 @@ export class Game {
   _toggleInventory() {
     this.inventoryOpen = !this.inventoryOpen;
     if (this.inventoryOpen) {
+      if (document.pointerLockElement) document.exitPointerLock();
       this.hud.showInventory(this.player.inventory, this.player.equipment);
     } else {
       this.hud.hideInventory();
+      if (!document.pointerLockElement) this.canvas.requestPointerLock();
     }
   }
 
