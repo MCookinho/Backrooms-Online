@@ -37,17 +37,24 @@ export class Level0 {
     this.textures = {};
     const basePath = window.location.pathname.replace(/\/[^/]*$/, '') || '.';
 
-    const load = (name, relPath) => {
+    const load = (name, relPath, repeatX = 2, repeatY = 1) => {
       const tex = this.textureLoader.load(`${basePath}/assets/textures/${relPath}`);
       tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(repeatX, repeatY);
       this.textures[name] = tex;
     };
 
-    load('wallDiff', 'wall_decrepit_diff.jpg');
-    load('wallNor', 'wall_decrepit_nor.jpg');
-    load('wallRough', 'wall_decrepit_rough.jpg');
-    load('floorDiff', 'floor_carpet_diff.jpg');
-    load('ceilingDiff', 'ceiling_diff.jpg');
+    load('wallDiff', 'backrooms-wall-diffuse.png', 2, 1);
+    load('wallNor', 'backrooms-wall-normal.png', 2, 1);
+    load('floorDiff', 'backrooms-carpet-diffuse.png', 4, 4);
+    load('floorNor', 'backrooms-carpet-normal.png', 4, 4);
+    load('ceilDiff', 'backrooms-ceiling-tile-diffuse.png', 4, 4);
+    load('ceilNor', 'backrooms-ceiling-tile-normal.png', 4, 4);
+    load('ceilRough', 'backrooms-ceiling-tile-roughness.png', 4, 4);
+    load('lightDiff', 'backrooms-ceiling-light-diffuse.png', 1, 1);
+    load('lightEmit', 'backrooms-ceiling-light-emission.png', 1, 1);
+    load('lightNor', 'backrooms-ceiling-light-normal.png', 1, 1);
+    load('lightRough', 'backrooms-ceiling-light-roughness.png', 1, 1);
   }
 
   unload() {
@@ -345,12 +352,14 @@ export class Level0 {
 
   _createFluorescentLights(layout) {
     const lightFixtureMat = new THREE.MeshStandardMaterial({
-      color: 0xeeeeee,
-      roughness: 0.3,
-      metalness: 0.8,
+      map: this.textures.lightDiff,
+      normalMap: this.textures.lightNor,
+      roughnessMap: this.textures.lightRough,
+      roughness: 0.6,
+      metalness: 0.3,
     });
     const bulbMat = new THREE.MeshStandardMaterial({
-      color: 0xffffcc,
+      map: this.textures.lightEmit,
       emissive: 0xffffaa,
       emissiveIntensity: 0.5,
     });
@@ -614,38 +623,27 @@ export class Level0 {
   }
 
   _createWallMaterial() {
-    const tex = this.textures.wallDiff;
-    const nor = this.textures.wallNor;
-    const rough = this.textures.wallRough;
-    tex.repeat.set(2, 1);
-    nor.repeat.set(2, 1);
-    rough.repeat.set(2, 1);
-
     return new THREE.MeshStandardMaterial({
-      map: tex,
-      normalMap: nor,
-      roughnessMap: rough,
-      roughness: 0.9,
+      map: this.textures.wallDiff,
+      normalMap: this.textures.wallNor,
+      roughness: 0.85,
       color: 0xffffff,
     });
   }
 
   _createFloorMaterial() {
-    const tex = this.textures.floorDiff;
-    tex.repeat.set(4, 4);
-
     return new THREE.MeshStandardMaterial({
-      map: tex,
+      map: this.textures.floorDiff,
+      normalMap: this.textures.floorNor,
       roughness: 0.95,
     });
   }
 
   _createCeilingMaterial() {
-    const tex = this.textures.ceilingDiff;
-    tex.repeat.set(4, 4);
-
     return new THREE.MeshStandardMaterial({
-      map: tex,
+      map: this.textures.ceilDiff,
+      normalMap: this.textures.ceilNor,
+      roughnessMap: this.textures.ceilRough,
       roughness: 0.9,
     });
   }
