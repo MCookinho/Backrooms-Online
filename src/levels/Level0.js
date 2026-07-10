@@ -720,9 +720,19 @@ export class Level0 {
             this.object3d.add(hole);
           }
         } else if (kind < 0.66) {
-          const frameMat = _makeMat('frame', { color: 0xc8b898, roughness: 0.3, metalness: 0.05 });
-          const fw = 0.14 + rng() * 0.1;
-          const fh = 0.10 + rng() * 0.08;
+          const frameStyles = [
+            { color: 0xc8b898, roughness: 0.3, metalness: 0.05 },  // warm wood
+            { color: 0x3a3028, roughness: 0.6, metalness: 0.02 },  // dark wood
+            { color: 0x222222, roughness: 0.7, metalness: 0 },     // black
+            { color: 0xe8e0d8, roughness: 0.5, metalness: 0 },     // white
+            { color: 0x887050, roughness: 0.6, metalness: 0 },     // rustic
+            { color: 0xd4b88a, roughness: 0.2, metalness: 0.15 },  // gold
+          ];
+          const fs = frameStyles[Math.floor(rng() * frameStyles.length)];
+          const frameMat = _makeMat('frame', fs);
+          const portrait = rng() < 0.5;
+          const fw = portrait ? 0.12 + rng() * 0.06 : 0.16 + rng() * 0.12;
+          const fh = portrait ? 0.16 + rng() * 0.10 : 0.10 + rng() * 0.06;
           const frame = new THREE.Mesh(new THREE.BoxGeometry(fw, fh, 0.008), frameMat);
           const fy = h + 0.5 + rng() * (wallH - 0.8);
           frame.position.set(decoX, fy, decoZ);
@@ -735,12 +745,30 @@ export class Level0 {
           }
           this.object3d.add(frame);
 
-          const innerMat = _makeMat('frameInner', { color: 0xf5f0e8, roughness: 0.6 });
-          const inner = new THREE.Mesh(new THREE.BoxGeometry(fw * 0.7, fh * 0.7, 0.009), innerMat);
+          const innerColors = [
+            0xf5f0e8, 0xe8e0d0, 0xd8d0c0, 0xf0ebe0, 0xe0d8cc,
+            0xb8c0b0, 0xc8b8a0, 0xd0c8d0, 0xe8dcd0, 0xa8a898,
+          ];
+          const ic = innerColors[Math.floor(rng() * innerColors.length)];
+          const innerMat = _makeMat('frameInner', { color: ic, roughness: 0.6 });
+          const inner = new THREE.Mesh(new THREE.BoxGeometry(fw * 0.72, fh * 0.72, 0.009), innerMat);
           inner.position.copy(frame.position);
           if (wallDir === 'z') inner.position.z += 0.001;
           else inner.position.x += 0.001;
           this.object3d.add(inner);
+
+          if (rng() < 0.25) {
+            const accentMat = _makeMat('frameAccent', {
+              color: innerColors[Math.floor(rng() * innerColors.length)],
+              roughness: 0.5,
+            });
+            const aw = fw * 0.25, ah = fh * 0.15;
+            const accent = new THREE.Mesh(new THREE.BoxGeometry(aw, ah, 0.010), accentMat);
+            accent.position.copy(inner.position);
+            if (wallDir === 'z') accent.position.z += 0.001;
+            else accent.position.x += 0.001;
+            this.object3d.add(accent);
+          }
         } else {
           const scratchMat = _makeMat('scratch', { color: 0x55504a, roughness: 0.6 });
           const sw = wallDir === 'z' ? 0.002 + rng() * 0.015 : 0.025 + rng() * 0.04;
