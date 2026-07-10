@@ -480,10 +480,124 @@ export class Level0 {
   }
 
   _createFloorMaterial() {
+    const carpet = this._generateCarpetTexture();
     return new THREE.MeshStandardMaterial({
-      map: this.textures.floorDiff, normalMap: this.textures.floorNor,
-      roughness: 0.95, color: 0x887744,
+      map: carpet,
+      roughness: 0.85,
+      roughnessMap: this._generateCarpetRoughness(),
+      color: 0xffffff,
     });
+  }
+
+  _generateCarpetTexture() {
+    const size = 512;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    // Base color: warm beige-yellow
+    ctx.fillStyle = '#d4c49a';
+    ctx.fillRect(0, 0, size, size);
+
+    // Add subtle noise/grain
+    const imageData = ctx.getImageData(0, 0, size, size);
+    const data = imageData.data;
+    for (let i = 0; i < data.length; i += 4) {
+      const noise = (Math.random() - 0.5) * 12;
+      data[i] = Math.max(0, Math.min(255, data[i] + noise));
+      data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + noise));
+      data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + noise));
+    }
+    ctx.putImageData(imageData, 0, 0);
+
+    // Repeating diamond pattern (classic Backrooms carpet)
+    const tileW = 32, tileH = 32;
+    ctx.strokeStyle = 'rgba(160, 130, 70, 0.25)';
+    ctx.lineWidth = 1.5;
+    for (let py = 0; py < size; py += tileH) {
+      for (let px = 0; px < size; px += tileW) {
+        const cx = px + tileW / 2, cy = py + tileH / 2;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - tileH / 2 + 2);
+        ctx.lineTo(cx + tileW / 2 - 2, cy);
+        ctx.lineTo(cx, cy + tileH / 2 - 2);
+        ctx.lineTo(cx - tileW / 2 + 2, cy);
+        ctx.closePath();
+        ctx.stroke();
+      }
+    }
+
+    // Inner diamond (smaller, slightly darker)
+    ctx.strokeStyle = 'rgba(140, 110, 50, 0.2)';
+    ctx.lineWidth = 1;
+    for (let py = 0; py < size; py += tileH) {
+      for (let px = 0; px < size; px += tileW) {
+        const cx = px + tileW / 2, cy = py + tileH / 2;
+        const inset = 6;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - tileH / 2 + inset);
+        ctx.lineTo(cx + tileW / 2 - inset, cy);
+        ctx.lineTo(cx, cy + tileH / 2 - inset);
+        ctx.lineTo(cx - tileW / 2 + inset, cy);
+        ctx.closePath();
+        ctx.stroke();
+      }
+    }
+
+    // Damp/wet spots (slightly darker)
+    ctx.fillStyle = 'rgba(150, 120, 70, 0.06)';
+    for (let i = 0; i < 60; i++) {
+      const sx = Math.random() * size;
+      const sy = Math.random() * size;
+      ctx.beginPath();
+      ctx.ellipse(sx, sy, 10 + Math.random() * 20, 8 + Math.random() * 16, Math.random() * Math.PI, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(8, 8);
+    tex.anisotropy = 4;
+    return tex;
+  }
+
+  _generateCarpetRoughness() {
+    const size = 256;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    // Mostly rough (light gray) with some smooth (dark) damp spots
+    ctx.fillStyle = '#cccccc';
+    ctx.fillRect(0, 0, size, size);
+
+    // Add noise
+    const imageData = ctx.getImageData(0, 0, size, size);
+    const data = imageData.data;
+    for (let i = 0; i < data.length; i += 4) {
+      const noise = (Math.random() - 0.5) * 60;
+      data[i] = Math.max(150, Math.min(255, data[i] + noise));
+      data[i + 1] = data[i];
+      data[i + 2] = data[i];
+    }
+    ctx.putImageData(imageData, 0, 0);
+
+    // Damp spots (smoother - darker in roughness map)
+    ctx.fillStyle = 'rgba(60, 60, 60, 0.3)';
+    for (let i = 0; i < 40; i++) {
+      const sx = Math.random() * size;
+      const sy = Math.random() * size;
+      ctx.beginPath();
+      ctx.ellipse(sx, sy, 15 + Math.random() * 25, 12 + Math.random() * 20, Math.random() * Math.PI, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(8, 8);
+    return tex;
   }
 
   _createCeilingMaterial() {
