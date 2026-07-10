@@ -262,7 +262,7 @@ export class Game {
   _toggleInventory() {
     this.inventoryOpen = !this.inventoryOpen;
     if (this.inventoryOpen) {
-      this.hud.showInventory(this.player.inventory);
+      this.hud.showInventory(this.player.inventory, this.player.equipment);
     } else {
       this.hud.hideInventory();
     }
@@ -270,7 +270,7 @@ export class Game {
 
   _useInventoryItem(index) {
     this.player.useItem(index);
-    this.hud.showInventory(this.player.inventory);
+    this.hud.showInventory(this.player.inventory, this.player.equipment);
   }
 
   _interact() {

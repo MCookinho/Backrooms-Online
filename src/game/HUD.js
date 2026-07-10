@@ -6,6 +6,7 @@ export class HUD {
     this.inventoryPanel = document.getElementById('inventory-panel');
     this.inventoryGrid = document.getElementById('inventory-grid');
     this.inventoryInfo = document.getElementById('inventory-info');
+    this.invEquipSlots = document.querySelectorAll('.equip-slot');
     this.controlsHint = document.getElementById('controls-hint');
     this.crosshair = document.getElementById('crosshair');
     this.mobileControls = document.getElementById('mobile-controls');
@@ -27,23 +28,23 @@ export class HUD {
     this.interactPrompt.style.display = 'none';
   }
 
-  showInventory(inventory) {
+  showInventory(inventory, equipment) {
     this.inventoryPanel.classList.remove('hidden');
     this.inventoryGrid.innerHTML = '';
-    this.inventoryInfo.textContent = 'Click an item to use it';
+    this.inventoryInfo.textContent = '▸ CLICK TO USE';
 
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 6; i++) {
       const slot = document.createElement('div');
-      slot.className = 'inventory-slot';
+      slot.className = 'inv-slot';
       if (inventory[i]) {
         const icon = document.createElement('span');
-        icon.className = 'item-icon';
+        icon.className = 'inv-icon';
         icon.textContent = inventory[i].icon || '?';
         const name = document.createElement('span');
-        name.className = 'item-name';
+        name.className = 'inv-name';
         name.textContent = inventory[i].name;
         if (inventory[i].quantity > 1) {
-          name.textContent += ` (${inventory[i].quantity})`;
+          name.textContent += ` ×${inventory[i].quantity}`;
         }
         slot.appendChild(icon);
         slot.appendChild(name);
@@ -51,8 +52,29 @@ export class HUD {
         slot.addEventListener('click', () => {
           window.__useItem && window.__useItem(i);
         });
+      } else {
+        const num = document.createElement('span');
+        num.className = 'inv-idx';
+        num.textContent = String(i + 1);
+        slot.appendChild(num);
       }
       this.inventoryGrid.appendChild(slot);
+    }
+
+    if (equipment) {
+      for (const es of this.invEquipSlots) {
+        const slot = es.dataset.slot;
+        const item = equipment[slot];
+        const icon = es.querySelector('.equip-icon');
+        const name = es.querySelector('.equip-item');
+        if (item) {
+          icon.textContent = item.icon || '◆';
+          name.textContent = item.name;
+        } else {
+          icon.textContent = '◌';
+          name.textContent = '—';
+        }
+      }
     }
   }
 

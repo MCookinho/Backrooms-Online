@@ -38,8 +38,9 @@ export class Player {
     this.targetCamHeight = PLAYER_HEIGHT;
 
     this.inventory = [];
-    this.maxInventory = 8;
+    this.maxInventory = 6;
     this.equippedItem = null;
+    this.equipment = { head: null, torso: null, legs: null };
 
     this.interactRange = 2.5;
     this.nearbyInteractables = [];
