@@ -386,18 +386,25 @@ export class Level0 {
     const lightNorTex = this.textures.lightNor;
     const lightRoughTex = this.textures.lightRough;
 
-    const lightMat = new THREE.MeshStandardMaterial({
+    const panelMat = new THREE.MeshStandardMaterial({
       map: lightDiffTex,
       emissiveMap: lightEmitTex,
       emissive: 0xffffcc,
-      emissiveIntensity: 0.8,
+      emissiveIntensity: 1.0,
       normalMap: lightNorTex,
       roughnessMap: lightRoughTex,
       roughness: 0.3,
-      color: 0xeeeecc,
+      color: 0xffeecc,
     });
 
     const fixtureMat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.7 });
+
+    const ambient = new THREE.AmbientLight(0xffeedd, 1.4);
+    this.object3d.add(ambient);
+
+    const dirLight = new THREE.DirectionalLight(0xfff0dd, 0.4);
+    dirLight.position.set(0, 10, 0);
+    this.object3d.add(dirLight);
 
     for (let z = 0; z < GH; z++) {
       for (let x = 0; x < GW; x++) {
@@ -413,25 +420,30 @@ export class Level0 {
         fixture.position.set(cx, ROOM_H - 0.04, cz);
         this.object3d.add(fixture);
 
-        const lightPanel = new THREE.Mesh(
+        const panel = new THREE.Mesh(
           new THREE.PlaneGeometry(0.25, 0.25),
-          lightMat
+          panelMat
         );
-        lightPanel.rotation.x = Math.PI / 2;
-        lightPanel.position.set(cx, ROOM_H - 0.08, cz);
-        this.object3d.add(lightPanel);
-
-        const broken = Math.random() < 0.08;
-        const pl = new THREE.PointLight(0xffeedd, broken ? 0 : 1, TILE * 2.5);
-        pl.position.set(cx, ROOM_H - 0.5, cz);
-        pl.userData = {
-          timer: Math.random() * 100,
-          buzzRange: 0.8 + Math.random() * 0.4,
-          broken,
-        };
-        this.object3d.add(pl);
-        this.lights.push(pl);
+        panel.rotation.x = Math.PI / 2;
+        panel.position.set(cx, ROOM_H - 0.08, cz);
+        this.object3d.add(panel);
       }
+    }
+
+    const flickerPositions = [
+      [12, 4], [18, 4], [11, 2], [10, 8], [19, 9], [11, 10],
+    ];
+
+    for (const [lx, lz] of flickerPositions) {
+      if (!this._isWalkable(lx, lz)) continue;
+      const pl = new THREE.PointLight(0xffeedd, 0.5, TILE * 5);
+      pl.position.set(lx * TILE + TILE / 2, ROOM_H - 0.5, lz * TILE + TILE / 2);
+      pl.userData = {
+        timer: Math.random() * 100,
+        buzzRange: 0.8 + Math.random() * 0.4,
+      };
+      this.object3d.add(pl);
+      this.lights.push(pl);
     }
   }
 
@@ -669,14 +681,9 @@ export class Level0 {
 
   update(delta) {
     for (const light of this.lights) {
-      if (light.userData.broken) {
-        light.intensity *= 0.98;
-        if (light.intensity < 0.01) light.intensity = 0;
-        continue;
-      }
       light.userData.timer += delta;
       const f = Math.sin(light.userData.timer * light.userData.buzzRange * 3);
-      light.intensity = 1.0 * Math.max(0.9, 1 - Math.abs(f * 0.1));
+      light.intensity = 0.5 * Math.max(0.85, 1 - Math.abs(f * 0.15));
     }
   }
 
