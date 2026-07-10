@@ -790,7 +790,7 @@ export class Level0 {
             hScale,
             scaleBase
           );
-          clone.rotation.y = rotY + Math.PI;
+          clone.rotation.y = rotY - Math.PI / 2;
           this.object3d.add(clone);
         } else {
           const sKey = scratchKeys[Math.floor(rng() * scratchKeys.length)];
