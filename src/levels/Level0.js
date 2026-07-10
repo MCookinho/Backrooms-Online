@@ -177,10 +177,13 @@ export class Level0 {
 
     const wallThickness = 0.15;
 
+    const wallH = ROOM_HEIGHT - 0.2;
+    const wallY = 0.1 + wallH / 2;
+
     const createWallSegment = (cx, cz, segW, segH, ry) => {
       if (segW <= 0) return;
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(segW, segH, wallThickness), wallMat);
-      mesh.position.set(cx, y + segH / 2, cz);
+      mesh.position.set(cx, wallY, cz);
       mesh.rotation.y = ry;
       this.object3d.add(mesh);
       mesh.updateMatrixWorld(true);
@@ -192,11 +195,12 @@ export class Level0 {
     const doorH = 2.2;
     const doorW = 0.9;
 
+    const inset = 0.01;
     const sides = [
-      { dir: 'front', cx: x + w / 2, cz: z, len: w, ry: 0 },
-      { dir: 'back', cx: x + w / 2, cz: z + h, len: w, ry: 0 },
-      { dir: 'left', cx: x, cz: z + h / 2, len: h, ry: Math.PI / 2 },
-      { dir: 'right', cx: x + w, cz: z + h / 2, len: h, ry: Math.PI / 2 },
+      { dir: 'front', cx: x + w / 2, cz: z + inset, len: w, ry: 0 },
+      { dir: 'back', cx: x + w / 2, cz: z + h - inset, len: w, ry: 0 },
+      { dir: 'left', cx: x + inset, cz: z + h / 2, len: h, ry: Math.PI / 2 },
+      { dir: 'right', cx: x + w - inset, cz: z + h / 2, len: h, ry: Math.PI / 2 },
     ];
 
     const hasConnection = { front: false, back: false, left: false, right: false };
@@ -226,22 +230,22 @@ export class Level0 {
         if (side.ry === 0) {
           const s1cx = side.cx - seg1Len / 2 - doorW / 4;
           const s1cz = side.cz;
-          createWallSegment(s1cx, s1cz, seg1Len + doorW / 2, ROOM_HEIGHT, side.ry);
+          createWallSegment(s1cx, s1cz, seg1Len + doorW / 2, wallH, side.ry);
           const s2cx = side.cx + seg1Len / 2 + doorW / 4 + doorW / 2;
           const s2cz = side.cz;
-          createWallSegment(s2cx, s2cz, seg2Len + doorW / 2, ROOM_HEIGHT, side.ry);
+          createWallSegment(s2cx, s2cz, seg2Len + doorW / 2, wallH, side.ry);
         } else {
           const s1cx = side.cx;
           const s1cz = side.cz - seg1Len / 2 - doorW / 4;
-          createWallSegment(s1cx, s1cz, ROOM_HEIGHT, seg1Len + doorW / 2, side.ry);
+          createWallSegment(s1cx, s1cz, wallH, seg1Len + doorW / 2, side.ry);
           const s2cx = side.cx;
           const s2cz = side.cz + seg1Len / 2 + doorW / 4 + doorW / 2;
-          createWallSegment(s2cx, s2cz, ROOM_HEIGHT, seg2Len + doorW / 2, side.ry);
+          createWallSegment(s2cx, s2cz, wallH, seg2Len + doorW / 2, side.ry);
         }
 
         this._createDoorFrame(doorCenter, doorCenterZ, side.ry, doorH, doorW);
       } else {
-        createWallSegment(side.cx, side.cz, side.len, ROOM_HEIGHT, side.ry);
+        createWallSegment(side.cx, side.cz, side.len, wallH, side.ry);
       }
     }
 
