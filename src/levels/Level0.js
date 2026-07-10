@@ -3,6 +3,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 const TILE = 4;
 const ROOM_H = 3.5;
+const WALL_T = 0.15;
 
 const GW = 60;
 const GH = 30;
@@ -42,6 +43,12 @@ const SECTORS = [
   [43, 9, 1, 4, 'hall'],
 ];
 
+const LIGHT_TILES = [
+  [5, 5], [10, 5], [15, 5], [20, 5], [25, 5], [30, 5], [35, 5], [40, 5], [45, 5], [50, 5], [55, 5],
+  [5, 15], [10, 15], [15, 15], [20, 15], [25, 15], [30, 15], [35, 15], [40, 15], [45, 15], [50, 15], [55, 15],
+  [5, 25], [10, 25], [15, 25], [20, 25], [25, 25], [30, 25],
+];
+
 const ITEM_PLACEMENTS = [
   ['flashlight', 14, 5],
   ['almond_water', 13, 5],
@@ -61,12 +68,6 @@ const ITEM_PLACEMENTS = [
   ['key', 51, 13],
 ];
 
-const LIGHT_TILES = [
-  [5, 5], [10, 5], [15, 5], [20, 5], [25, 5], [30, 5], [35, 5], [40, 5], [45, 5], [50, 5], [55, 5],
-  [5, 15], [10, 15], [15, 15], [20, 15], [25, 15], [30, 15], [35, 15], [40, 15], [45, 15], [50, 15], [55, 15],
-  [5, 25], [10, 25], [15, 25], [20, 25], [25, 25], [30, 25],
-];
-
 const ITEM_MODEL_MAP = {
   almond_water: 'water_bottle.glb',
   flashlight: 'flashlight.glb',
@@ -83,8 +84,6 @@ const FURNITURE_MODEL_MAP = {
   water_cooler: 'water_cooler.glb',
 };
 
-const PIECE_NAMES = ['Floor', 'Wall Pain', 'Out Corner', 'In Corner', 'Ceiling Off', 'Ceiling On'];
-
 export class Level0 {
   constructor() {
     this.spawnPoint = new THREE.Vector3((23 + 0.5) * TILE, 0, (12 + 0.5) * TILE);
@@ -94,7 +93,7 @@ export class Level0 {
     this.lights = [];
     this.wallBoxes = [];
     this.grid = null;
-    this.pieces = {};
+    this.textures = {};
     this.models = {};
   }
 
@@ -124,21 +123,29 @@ export class Level0 {
     this._buildLevel();
   }
 
-  _bakeNode(node) {
-    node.updateMatrix();
-    node.traverse((child) => {
-      if (child.isMesh) {
-        child.geometry = child.geometry.clone();
-        child.geometry.applyMatrix4(child.matrix);
-        child.position.set(0, 0, 0);
-        child.rotation.set(0, 0, 0);
-        child.scale.set(1, 1, 1);
-      }
-    });
-  }
-
   async _loadAssets() {
     const base = window.location.pathname.replace(/\/[^/]*$/, '') || '.';
+
+    const loadTex = (key, path, rx, ry) => {
+      const t = this.textureLoader.load(`${base}/assets/textures/${path}`);
+      t.wrapS = t.wrapT = THREE.RepeatWrapping;
+      t.repeat.set(rx, ry);
+      this.textures[key] = t;
+    };
+
+    loadTex('carpetDiff', 'assetpack/carpet016_2k_png_color_yellowed.jpg', 12, 12);
+    loadTex('carpetNorm', 'assetpack/carpet016_2k_png_normalgl.jpg', 12, 12);
+    loadTex('carpetRough', 'assetpack/carpet016_2k_png_roughness.jpg', 12, 12);
+    loadTex('wallDiff', 'assetpack/backroom_wallpaper_texture___yellowed_loopable.jpg', 2, 2);
+    loadTex('wallNor', 'assetpack/wallpaper002a_2k_png_normalgl.jpg', 2, 2);
+    loadTex('wallRough', 'assetpack/wallpaper002a_2k_png_roughness.jpg', 2, 2);
+    loadTex('ceilDiff', 'assetpack/officeceiling003_2k_png_color.jpg', 4, 4);
+    loadTex('ceilNor', 'assetpack/officeceiling003_2k_png_normalgl.jpg', 4, 4);
+    loadTex('ceilRough', 'assetpack/officeceiling003_2k_png_metalness_officeceiling003_2k_png_roughness.jpg', 4, 4);
+    loadTex('ceilEmit', 'assetpack/officeceiling003_2k_png_emission.jpg', 4, 4);
+    loadTex('footerDiff', 'assetpack/paper001_2k_png_color.jpg', 1, 1);
+    loadTex('footerNor', 'assetpack/wood050_2k_png_normalgl.jpg', 1, 1);
+    loadTex('footerRough', 'assetpack/wood050_2k_png_roughness.jpg', 1, 1);
 
     const loadModel = (key, filename) => {
       return new Promise((resolve) => {
@@ -162,33 +169,7 @@ export class Level0 {
       if (!this.models[name]) modelPromises.push(loadModel(name, key));
     }
 
-    const loader = new GLTFLoader();
-    const assetPackPromise = new Promise((resolve) => {
-      loader.load(
-        `${base}/assets/models/backrooms_asset_pack.glb`,
-        (gltf) => {
-          for (const child of gltf.scene.children) {
-            if (PIECE_NAMES.includes(child.name)) {
-              const clone = child.clone();
-              this._bakeNode(clone);
-              this.pieces[child.name] = clone;
-            }
-          }
-          resolve();
-        },
-        undefined,
-        () => resolve()
-      );
-    });
-    modelPromises.push(assetPackPromise);
-
     await Promise.all(modelPromises);
-  }
-
-  _clonePiece(name) {
-    const src = this.pieces[name];
-    if (!src) return null;
-    return src.clone(true);
   }
 
   unload() {
@@ -223,150 +204,104 @@ export class Level0 {
   }
 
   _buildFloor() {
-    const template = this.pieces.Floor;
-    if (!template) return;
+    const floorMat = new THREE.MeshStandardMaterial({
+      map: this.textures.carpetDiff,
+      normalMap: this.textures.carpetNorm,
+      roughnessMap: this.textures.carpetRough,
+      roughness: 0.85,
+      metalness: 0,
+    });
 
     for (let z = 0; z < GH; z++) {
       for (let x = 0; x < GW; x++) {
         if (!this._isWalkable(x, z)) continue;
-        const p = template.clone(true);
-        const s = TILE / 2;
-        p.scale.set(s, 1, s);
-        p.position.set(x * TILE + TILE / 2, 0, z * TILE + TILE / 2);
-        p.traverse(c => { if (c.isMesh) c.receiveShadow = true; });
-        this.object3d.add(p);
+        const floor = new THREE.Mesh(
+          new THREE.PlaneGeometry(TILE, TILE),
+          floorMat
+        );
+        floor.rotation.x = -Math.PI / 2;
+        floor.position.set(x * TILE + TILE / 2, 0, z * TILE + TILE / 2);
+        floor.receiveShadow = true;
+        this.object3d.add(floor);
       }
     }
   }
 
   _buildCeiling() {
-    const offTemplate = this.pieces['Ceiling Off'];
-    const onTemplate = this.pieces['Ceiling On'];
-    if (!offTemplate) return;
-
-    const lightSet = new Set(LIGHT_TILES.map(([x, z]) => `${x},${z}`));
+    const ceilMat = new THREE.MeshStandardMaterial({
+      map: this.textures.ceilDiff,
+      normalMap: this.textures.ceilNor,
+      roughnessMap: this.textures.ceilRough,
+      roughness: 0.95,
+      color: 0xeee8e0,
+    });
 
     for (let z = 0; z < GH; z++) {
       for (let x = 0; x < GW; x++) {
         if (!this._isWalkable(x, z)) continue;
-        const hasLight = lightSet.has(`${x},${z}`);
-        const template = hasLight && onTemplate ? onTemplate : offTemplate;
-        const p = template.clone(true);
-        const s = TILE / 2;
-        p.scale.set(s, 1, s);
-        p.position.set(x * TILE + TILE / 2, ROOM_H, z * TILE + TILE / 2);
-        this.object3d.add(p);
+        const ceil = new THREE.Mesh(
+          new THREE.PlaneGeometry(TILE, TILE),
+          ceilMat
+        );
+        ceil.rotation.x = Math.PI / 2;
+        ceil.position.set(x * TILE + TILE / 2, ROOM_H, z * TILE + TILE / 2);
+        this.object3d.add(ceil);
       }
     }
   }
 
   _buildWalls() {
-    const wallTemplate = this.pieces['Wall Pain'];
-    const outCornerTemplate = this.pieces['Out Corner'];
-    const inCornerTemplate = this.pieces['In Corner'];
-    if (!wallTemplate) return;
+    const wallMat = new THREE.MeshStandardMaterial({
+      map: this.textures.wallDiff,
+      normalMap: this.textures.wallNor,
+      roughnessMap: this.textures.wallRough,
+      roughness: 0.85,
+    });
 
-    const wallH = 2.95;
-    const scaleY = ROOM_H / wallH;
+    const footerMat = new THREE.MeshStandardMaterial({
+      map: this.textures.footerDiff,
+      normalMap: this.textures.footerNor,
+      roughnessMap: this.textures.footerRough,
+      roughness: 0.8,
+      color: 0x887755,
+    });
+
+    const footerH = 0.12;
+
+    const addWall = (px, py, pz, w, h, d) => {
+      const group = new THREE.Group();
+
+      const wall = new THREE.Mesh(new THREE.BoxGeometry(w, h - footerH, d), wallMat);
+      wall.position.y = footerH / 2 + (h - footerH) / 2;
+      group.add(wall);
+
+      const footer = new THREE.Mesh(new THREE.BoxGeometry(w + d, footerH, d + 0.02), footerMat);
+      footer.position.y = footerH / 2;
+      group.add(footer);
+
+      group.position.set(px, py, pz);
+      this.object3d.add(group);
+      this.wallBoxes.push(new THREE.Box3().setFromObject(group));
+    };
 
     for (let z = 0; z < GH; z++) {
       for (let x = 0; x < GW; x++) {
         if (!this._isWalkable(x, z)) continue;
 
-        const neighbors = {
-          n: z > 0 && this._isWalkable(x, z - 1),
-          s: z < GH - 1 && this._isWalkable(x, z + 1),
-          w: x > 0 && this._isWalkable(x - 1, z),
-          e: x < GW - 1 && this._isWalkable(x + 1, z),
-        };
-
-        const cx = x * TILE + TILE / 2;
-        const cz = z * TILE + TILE / 2;
-        const s = TILE / 2;
-
-        if (!neighbors.n) {
-          const leftCorner = !neighbors.w || (x > 0 && z > 0 && !this._isWalkable(x - 1, z - 1));
-          const rightCorner = !neighbors.e || (x < GW - 1 && z > 0 && !this._isWalkable(x + 1, z - 1));
-
-          if (leftCorner) {
-            const p = this._createCorner(outCornerTemplate, inCornerTemplate, x, z, 'nw', s, scaleY);
-            if (p) { p.position.set(cx - TILE / 2, 0, cz - TILE / 2); this.object3d.add(p); }
-          }
-          if (rightCorner) {
-            const p = this._createCorner(outCornerTemplate, inCornerTemplate, x, z, 'ne', s, scaleY);
-            if (p) { p.position.set(cx + TILE / 2, 0, cz - TILE / 2); this.object3d.add(p); }
-          }
-
-          const wall = wallTemplate.clone(true);
-          wall.scale.set(s, scaleY, 1);
-          wall.position.set(cx, 0, z * TILE);
-          this.object3d.add(wall);
-          this.wallBoxes.push(new THREE.Box3().setFromObject(wall));
+        if (z === 0 || !this._isWalkable(x, z - 1)) {
+          addWall(x * TILE + TILE / 2, 0, z * TILE, TILE, ROOM_H, WALL_T);
         }
-
-        if (!neighbors.s) {
-          const leftCorner = !neighbors.w || (x > 0 && z < GH - 1 && !this._isWalkable(x - 1, z + 1));
-          const rightCorner = !neighbors.e || (x < GW - 1 && z < GH - 1 && !this._isWalkable(x + 1, z + 1));
-
-          if (leftCorner) {
-            const p = this._createCorner(outCornerTemplate, inCornerTemplate, x, z, 'se', s, scaleY);
-            if (p) { p.position.set(cx + TILE / 2, 0, cz + TILE / 2); this.object3d.add(p); }
-          }
-          if (rightCorner) {
-            const p = this._createCorner(outCornerTemplate, inCornerTemplate, x, z, 'sw', s, scaleY);
-            if (p) { p.position.set(cx - TILE / 2, 0, cz + TILE / 2); this.object3d.add(p); }
-          }
-
-          const wall = wallTemplate.clone(true);
-          wall.scale.set(s, scaleY, 1);
-          wall.position.set(cx, 0, z * TILE + TILE);
-          this.object3d.add(wall);
-          this.wallBoxes.push(new THREE.Box3().setFromObject(wall));
+        if (z === GH - 1 || !this._isWalkable(x, z + 1)) {
+          addWall(x * TILE + TILE / 2, 0, z * TILE + TILE, TILE, ROOM_H, WALL_T);
         }
-
-        if (!neighbors.w) {
-          const wall = wallTemplate.clone(true);
-          wall.scale.set(s, scaleY, 1);
-          wall.rotation.y = Math.PI / 2;
-          wall.position.set(x * TILE, 0, cz);
-          this.object3d.add(wall);
-          this.wallBoxes.push(new THREE.Box3().setFromObject(wall));
+        if (x === 0 || !this._isWalkable(x - 1, z)) {
+          addWall(x * TILE, 0, z * TILE + TILE / 2, WALL_T, ROOM_H, TILE);
         }
-
-        if (!neighbors.e) {
-          const wall = wallTemplate.clone(true);
-          wall.scale.set(s, scaleY, 1);
-          wall.rotation.y = -Math.PI / 2;
-          wall.position.set(x * TILE + TILE, 0, cz);
-          this.object3d.add(wall);
-          this.wallBoxes.push(new THREE.Box3().setFromObject(wall));
+        if (x === GW - 1 || !this._isWalkable(x + 1, z)) {
+          addWall(x * TILE + TILE, 0, z * TILE + TILE / 2, WALL_T, ROOM_H, TILE);
         }
       }
     }
-  }
-
-  _createCorner(outTemplate, inTemplate, gx, gz, corner, s, scaleY) {
-    const cornerMap = {
-      nw: { out: 0, outPos: [0, 0], inRot: 0, inPos: [-1, -1] },
-      ne: { out: Math.PI / 2, outPos: [0, 0], inRot: -Math.PI / 2, inPos: [1, -1] },
-      se: { out: Math.PI, outPos: [0, 0], inRot: Math.PI, inPos: [1, 1] },
-      sw: { out: -Math.PI / 2, outPos: [0, 0], inRot: Math.PI / 2, inPos: [-1, 1] },
-    };
-    const cfg = cornerMap[corner];
-    if (!cfg) return null;
-
-    const leftOpen = gx > 0 && gz > 0 && this._isWalkable(
-      corner === 'nw' ? gx - 1 : corner === 'ne' ? gx + 1 : corner === 'se' ? gx + 1 : gx - 1,
-      corner === 'nw' ? gz - 1 : corner === 'ne' ? gz - 1 : corner === 'se' ? gz + 1 : gz + 1
-    );
-
-    const template = leftOpen ? inTemplate : outTemplate;
-    if (!template) return null;
-
-    const p = template.clone(true);
-    p.scale.set(s, scaleY, s);
-    p.rotation.y = leftOpen ? (cfg.inRot || 0) : (cfg.out || 0);
-    return p;
   }
 
   _createLights() {
@@ -381,8 +316,34 @@ export class Level0 {
       const cx = gx * TILE + TILE / 2;
       const cz = gz * TILE + TILE / 2;
 
+      const fixtureMat = new THREE.MeshStandardMaterial({
+        map: this.textures.ceilDiff,
+        normalMap: this.textures.ceilNor,
+        roughnessMap: this.textures.ceilRough,
+        emissiveMap: this.textures.ceilEmit,
+        emissive: 0xffffff,
+        emissiveIntensity: 0.6,
+        roughness: 0.7,
+        metalness: 0.1,
+      });
+
+      const fixture = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.05, 0.25), fixtureMat);
+      fixture.position.set(cx, ROOM_H - 0.025, cz);
+      this.object3d.add(fixture);
+
+      const glowMat = new THREE.MeshStandardMaterial({
+        color: 0xffffcc,
+        emissive: 0xffffaa,
+        emissiveIntensity: 0.3,
+        transparent: true,
+        opacity: 0.15,
+      });
+      const glow = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.02, 0.18), glowMat);
+      glow.position.set(cx, ROOM_H - 0.04, cz);
+      this.object3d.add(glow);
+
       const pl = new THREE.PointLight(0xffddaa, 0.3, 10);
-      pl.position.set(cx, ROOM_H - 0.5, cz);
+      pl.position.set(cx, ROOM_H - 0.1, cz);
       pl.userData = { timer: Math.random() * 10, buzzRange: buzz[bi++ % buzz.length] };
       this.object3d.add(pl);
       this.lights.push(pl);
