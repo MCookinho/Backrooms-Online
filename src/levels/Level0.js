@@ -37,26 +37,26 @@ const ITEM_PLACEMENTS = [
 ];
 
 const ITEM_MODEL_MAP = {
-  almond_water: 'water_bottle.glb', flashlight: 'flashlight.glb',
+  almond_water: 'water_bottle.glb', flashlight: '__procedural_flashlight',
   batteries: '__procedural_battery', lighter: 'lighter.glb',
-  medkit: 'firstaid.glb', key: 'key.glb', note: 'papers.glb',
+  medkit: 'firstaid.glb', key: '__procedural_key', note: 'papers.glb',
 };
 
 const ITEM_SCALES = {
-  almond_water: 0.0038,
-  flashlight: 2.5,
-  lighter: 0.00047,
-  medkit: 19,
-  key: 0.12,
-  note: 0.0016,
+  almond_water: 0.0056,
+  flashlight: 1,
+  lighter: 0.00136,
+  medkit: 25,
+  key: 1,
+  note: 0.00175,
 };
 
 const FURNITURE_SCALES = {
-  filing_cabinet: 0.65,
+  water_cooler: 0.103,
 };
 
 const FURNITURE_MODEL_MAP = {
-  filing_cabinet: 'filing_cabinet.glb', water_cooler: 'water_cooler.glb',
+  water_cooler: 'water_cooler.glb',
 };
 
 function _makeMat(name, opts = {}) {
@@ -390,11 +390,22 @@ export class Level0 {
   }
 
   _findSpawnPoint() {
-    for (let z = 0; z < GH; z++)
-      for (let x = 0; x < GW; x++)
-        if (this.grid[z][x] === 'S')
-          return new THREE.Vector3((x + 0.5) * TILE, this.heightMap[z][x], (z + 0.5) * TILE);
-    return new THREE.Vector3(8 * TILE, 0, 8 * TILE);
+    let bestX = 8, bestZ = 8, bestScore = -1;
+    for (let z = 0; z < GH; z++) {
+      for (let x = 0; x < GW; x++) {
+        if (this.grid[z][x] !== 'S') continue;
+        let score = 0;
+        for (let dz = -3; dz <= 3; dz++) {
+          for (let dx = -3; dx <= 3; dx++) {
+            const nx = x + dx, nz = z + dz;
+            if (nx >= 0 && nx < GW && nz >= 0 && nz < GH && this.grid[nz][nx] !== ' ')
+              score++;
+          }
+        }
+        if (score > bestScore) { bestScore = score; bestX = x; bestZ = z; }
+      }
+    }
+    return new THREE.Vector3((bestX + 0.5) * TILE, this.heightMap[bestZ][bestX], (bestZ + 0.5) * TILE);
   }
 
   async _loadAssets() {
@@ -428,10 +439,12 @@ export class Level0 {
     const modelPromises = [];
     const seen = new Set();
     for (const key of Object.values(ITEM_MODEL_MAP)) {
+      if (!key.endsWith('.glb')) continue;
       const name = key.replace('.glb', '');
       if (!seen.has(name)) { seen.add(name); modelPromises.push(loadModel(name, key)); }
     }
     for (const key of Object.values(FURNITURE_MODEL_MAP)) {
+      if (!key.endsWith('.glb')) continue;
       const name = key.replace('.glb', '');
       if (!seen.has(name)) { seen.add(name); modelPromises.push(loadModel(name, key)); }
     }
@@ -1042,15 +1055,26 @@ export class Level0 {
 
     if (cells.length === 0) return;
 
+    const cabMat = _makeMat('cabinet', { color: 0x888c8a, metalness: 0.5, roughness: 0.4 });
+    const handleMat = _makeMat('cabinet_handle', { color: 0x555555, metalness: 0.7, roughness: 0.3 });
     for (let i = 0; i < Math.min(10, cells.length); i++) {
       const cell = cells[(i * 7 + 3) % cells.length];
       const cx = cell.x * TILE + TILE / 2 + ((i % 3) - 1) * 0.8;
       const cz = cell.z * TILE + TILE / 2 + ((i * 2 + 1) % 3 - 1) * 0.8;
-      const cab = this._cloneModel('filing_cabinet');
+      const cab = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.3, 0.6), cabMat);
+      body.position.y = 0.65;
+      cab.add(body);
+      for (let d = 0; d < 4; d++) {
+        const drawer = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.26, 0.04), cabMat);
+        drawer.position.set(0, d * 0.28 + 0.14, 0.32);
+        cab.add(drawer);
+        const handle = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.01, 0.02), handleMat);
+        handle.position.set(0, d * 0.28 + 0.14, 0.36);
+        cab.add(handle);
+      }
       cab.rotation.y = i * 1.2;
-      cab.scale.setScalar(FURNITURE_SCALES.filing_cabinet);
-      const box = new THREE.Box3().setFromObject(cab);
-      cab.position.set(cx, this._getHeight(cell.x, cell.z) - box.min.y, cz);
+      cab.position.set(cx, this._getHeight(cell.x, cell.z), cz);
       this.object3d.add(cab);
     }
 
@@ -1081,7 +1105,7 @@ export class Level0 {
       const cz = cell.z * TILE + TILE / 2 + ((i + 5) % 3 - 1) * 0.8;
       const cooler = this._cloneModel('water_cooler');
       cooler.rotation.set(-Math.PI / 2, i * 1.5, 0);
-      cooler.scale.setScalar(0.1);
+      cooler.scale.setScalar(FURNITURE_SCALES.water_cooler);
       const box = new THREE.Box3().setFromObject(cooler);
       cooler.position.set(cx, this._getHeight(cell.x, cell.z) - box.min.y, cz);
       this.object3d.add(cooler);
@@ -1096,6 +1120,39 @@ export class Level0 {
     if (modelKey === '__procedural_battery') {
       const mat = _makeMat('battery', { color: 0xcc3333, metalness: 0.4, roughness: 0.3 });
       mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.03, 0.08, 8), mat);
+    } else if (modelKey === '__procedural_flashlight') {
+      const g = new THREE.Group();
+      const bodyMat = _makeMat('flashlight_body', { color: 0x333333, metalness: 0.6, roughness: 0.3 });
+      const headMat = _makeMat('flashlight_head', { color: 0x444444, metalness: 0.5, roughness: 0.4 });
+      const lensMat = _makeMat('flashlight_lens', { color: 0xcccc88, metalness: 0.1, roughness: 0.2 });
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.03, 0.12, 12), bodyMat);
+      body.rotation.x = Math.PI / 2;
+      g.add(body);
+      const head = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.035, 0.03, 12), headMat);
+      head.rotation.x = Math.PI / 2;
+      head.position.x = 0.075;
+      g.add(head);
+      const lens = new THREE.Mesh(new THREE.CircleGeometry(0.035, 12), lensMat);
+      lens.rotation.y = Math.PI / 2;
+      lens.position.x = 0.09;
+      g.add(lens);
+      g.scale.setScalar(1.5);
+      mesh = g;
+    } else if (modelKey === '__procedural_key') {
+      const g = new THREE.Group();
+      const mat = _makeMat('key', { color: 0xccaa44, metalness: 0.7, roughness: 0.3 });
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.025, 0.008, 8, 12), mat);
+      ring.rotation.x = Math.PI / 2;
+      ring.position.z = 0.06;
+      g.add(ring);
+      const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.003, 0.09), mat);
+      g.add(shaft);
+      for (let i = 0; i < 3; i++) {
+        const tooth = new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.003, 0.015), mat);
+        tooth.position.set(0, -0.008 - i * 0.006, -0.04 - i * 0.012);
+        g.add(tooth);
+      }
+      mesh = g;
     } else {
       mesh = this._cloneModel(modelKey.replace('.glb', ''));
       const s = ITEM_SCALES[type];
