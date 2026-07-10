@@ -39,17 +39,18 @@ export class Game {
     this.loadingScreen = document.getElementById('loading-screen');
     this.loadingBar = document.getElementById('loading-bar');
     this.loadingText = document.getElementById('loading-text');
+    this.vhsTracking = document.getElementById('vhs-tracking');
 
     this._setupEventListeners();
   }
 
   async init() {
-    this._setLoadingProgress(5, 'Waking up...');
     this.audio.init();
 
-    this._setLoadingProgress(15, 'Generating rooms...');
-
     try {
+      this._setLoadingProgress(10, 'Establishing connection...');
+      await new Promise(r => setTimeout(r, 200));
+
       this._setLoadingProgress(25, 'Loading textures...');
       this.levelManager.registerLevel(0, new Level0());
       await this.levelManager.loadLevel(0);
@@ -57,17 +58,22 @@ export class Game {
       const sp = this.levelManager.getCurrentLevel().spawnPoint;
       if (sp) this.player.respawn(sp);
 
-      this._setLoadingProgress(70, 'Spawning entities...');
+      this._setLoadingProgress(70, 'Compiling geometry...');
       this._spawnThreats();
     } catch (e) {
       console.warn('Level 0 failed to load:', e);
     }
 
-    this._setLoadingProgress(85, 'Calibrating reality...');
+    this._setLoadingProgress(85, 'Stabilizing reality...');
+    await new Promise(r => setTimeout(r, 200));
     this.running = true;
     this.audio.playAmbience('level0');
 
-    this._setLoadingProgress(100, 'Entering Level 0...');
+    this._setLoadingProgress(95, 'NOCLIP initiated');
+    if (this.vhsTracking) this.vhsTracking.classList.add('active');
+    await new Promise(r => setTimeout(r, 500));
+
+    this._setLoadingProgress(100, '▮');
     await new Promise(r => setTimeout(r, 400));
     this._hideLoadingScreen();
 

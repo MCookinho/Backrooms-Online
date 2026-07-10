@@ -21,7 +21,7 @@ canvas {
   position: fixed;
   inset: 0;
   z-index: 200;
-  background: #0a0a08;
+  background: #080808;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -36,67 +36,172 @@ canvas {
 .loading-content {
   text-align: center;
   position: relative;
-  z-index: 2;
+  z-index: 3;
 }
 
 .loading-content h1 {
-  font-size: 2.5rem;
+  font-size: 3rem;
   color: #ccb87a;
-  text-shadow: 0 0 30px rgba(204, 184, 122, 0.2);
-  letter-spacing: 6px;
-  margin-bottom: 0.5rem;
+  text-shadow:
+    0 0 40px rgba(204, 184, 122, 0.15),
+    0 0 80px rgba(204, 184, 122, 0.05);
+  letter-spacing: 10px;
+  margin-bottom: 3rem;
+  font-weight: 400;
 }
 
-.loading-subtitle {
-  font-size: 0.9rem;
-  color: #665533;
-  margin-bottom: 2rem;
-  letter-spacing: 2px;
+.glitch {
+  position: relative;
+}
+
+.glitch::before,
+.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+}
+
+.glitch::before {
+  color: #f6a;
+  clip-path: inset(0 0 60% 0);
+  animation: glitch-top 3s ease-in-out infinite alternate;
+}
+
+.glitch::after {
+  color: #6af;
+  clip-path: inset(60% 0 0 0);
+  animation: glitch-bottom 3s ease-in-out infinite alternate;
+}
+
+@keyframes glitch-top {
+  0%, 90%, 100% { transform: translate(0); opacity: 0; }
+  92% { transform: translate(-2px, -1px); opacity: 0.6; }
+  94% { transform: translate(1px, 1px); opacity: 0.4; }
+  96% { transform: translate(-1px, 2px); opacity: 0.5; }
+}
+
+@keyframes glitch-bottom {
+  0%, 90%, 100% { transform: translate(0); opacity: 0; }
+  92% { transform: translate(1px, 1px); opacity: 0.5; }
+  94% { transform: translate(-2px, -1px); opacity: 0.3; }
+  96% { transform: translate(2px, -2px); opacity: 0.6; }
 }
 
 .loading-bar-container {
-  width: 280px;
-  height: 4px;
-  background: rgba(204, 184, 122, 0.1);
-  border: 1px solid rgba(204, 184, 122, 0.2);
+  width: 320px;
+  height: 3px;
+  background: rgba(204, 184, 122, 0.08);
   margin: 0 auto;
   overflow: hidden;
+  position: relative;
 }
 
 .loading-bar {
   width: 0%;
   height: 100%;
-  background: linear-gradient(90deg, #887744, #ccb87a, #887744);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
-  transition: width 0.3s ease;
+  background: linear-gradient(90deg, #665533, #ccb87a, #887744, #ccb87a, #665533);
+  background-size: 400% 100%;
+  animation: bar-sweep 2s ease-in-out infinite;
+  transition: width 0.25s ease;
+  box-shadow: 0 0 12px rgba(204, 184, 122, 0.15);
 }
 
-@keyframes shimmer {
-  0%, 100% { background-position: -200% 0; }
-  50% { background-position: 200% 0; }
+@keyframes bar-sweep {
+  0%, 100% { background-position: 0% 0; }
+  50% { background-position: 100% 0; }
 }
 
 .loading-text {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: #554433;
-  margin-top: 1rem;
-  letter-spacing: 1px;
+  margin-top: 1.2rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  animation: text-pulse 2s ease-in-out infinite;
+}
+
+@keyframes text-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.9; }
+}
+
+.loading-corner {
+  position: absolute;
+  font-size: 0.55rem;
+  color: rgba(204, 184, 122, 0.15);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+.loading-corner.tl {
+  top: -3rem;
+  left: 0;
+}
+
+.loading-corner.br {
+  bottom: -3rem;
+  right: 0;
+}
+
+.scanlines {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.08) 2px,
+    rgba(0, 0, 0, 0.08) 4px
+  );
+}
+
+.vhs-tracking {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(
+    0deg,
+    transparent 48%,
+    rgba(204, 184, 122, 0.03) 49%,
+    rgba(204, 184, 122, 0.06) 50%,
+    rgba(204, 184, 122, 0.03) 51%,
+    transparent 52%
+  );
+  background-size: 100% 200%;
+  animation: vhs-scroll 6s linear infinite;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.vhs-tracking.active {
+  opacity: 1;
+}
+
+@keyframes vhs-scroll {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 200%; }
 }
 
 .loading-flicker {
   position: fixed;
   inset: 0;
-  background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.8) 100%);
+  background: radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.9) 100%);
   pointer-events: none;
   z-index: 1;
-  animation: flicker 0.15s ease-in-out infinite alternate;
-  opacity: 0.03;
+  animation: flicker 0.12s ease-in-out infinite alternate;
+  opacity: 0.04;
 }
 
 @keyframes flicker {
-  0% { opacity: 0.02; }
-  100% { opacity: 0.06; }
+  0% { opacity: 0.03; }
+  100% { opacity: 0.08; }
 }
 
 #controls-hint {
