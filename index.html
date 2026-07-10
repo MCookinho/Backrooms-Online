@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Backrooms Online</title>
+  <link rel="icon" type="image/png" href="./favicon.png" />
+  <script type="module" crossorigin src="./assets/index-VZSlS2uH.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-zwpebAvy.css">
+</head>
+<body>
+  <div id="loading-screen">
+    <div class="loading-content">
+      <h1 class="glitch" data-text="BACKROOMS ONLINE">BACKROOMS ONLINE</h1>
+      <div class="loading-subtitle" id="loading-subtitle">— LEVEL 0 —</div>
+      <div class="loading-bar-container">
+        <div class="loading-bar" id="loading-bar"></div>
+      </div>
+      <div class="loading-text" id="loading-text">INITIALIZING...</div>
+      <div class="loading-corner tl">/// NOCLIP v0.1</div>
+      <div class="loading-corner tr">TAPE 1/6</div>
+      <div class="loading-corner bl">MONOCHROME FEED</div>
+      <div class="loading-corner br">SIG. LOSS: 97%</div>
+      <div class="loading-hum" id="loading-hum">═══ ═══ ═══</div>
+    </div>
+    <div class="scanlines"></div>
+    <div class="vhs-tracking" id="vhs-tracking"></div>
+    <div class="loading-flicker"></div>
+    <div class="loading-noise"></div>
+    <div class="loading-tube"></div>
+    <div class="loading-glow"></div>
+  </div>
+
+  <div id="controls-hint" class="hidden">
+    <p>WASD - Move | Shift - Run | Space - Jump | E - Interact | I - Inventory | F - Flashlight</p>
+  </div>
+
+  <div id="hud">
+    <div id="health-bar"><div id="health-fill"></div></div>
+    <div id="stamina-bar"><div id="stamina-fill"></div></div>
+    <div id="crosshair">+</div>
+    <div id="interact-prompt"></div>
+    <div id="inventory-panel" class="hidden">
+      <div id="inv-frame">
+        <div id="inv-header">
+          <span id="inv-title">■ INVENTORY ■</span>
+        </div>
+        <div id="inv-body">
+          <div id="inv-left">
+            <div id="inventory-grid"></div>
+            <div id="inv-footer">
+              <span id="inventory-info">⌂ CLICK TO USE</span>
+            </div>
+          </div>
+          <div id="inv-right">
+            <div id="inv-equipment">
+              <div class="equip-slot" data-slot="head">
+                <span class="equip-icon equip-head">◉</span>
+                <div class="equip-info">
+                  <span class="equip-label">HEAD</span>
+                  <span class="equip-name">—</span>
+                </div>
+              </div>
+              <div class="equip-slot" data-slot="torso">
+                <span class="equip-icon equip-torso">◈</span>
+                <div class="equip-info">
+                  <span class="equip-label">TORSO</span>
+                  <span class="equip-name">—</span>
+                </div>
+              </div>
+              <div class="equip-slot" data-slot="legs">
+                <span class="equip-icon equip-legs">◇</span>
+                <div class="equip-info">
+                  <span class="equip-label">LEGS</span>
+                  <span class="equip-name">—</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="mobile-controls" class="hidden">
+      <div id="move-joystick"></div>
+      <div id="action-buttons">
+        <button id="btn-jump">Jump</button>
+        <button id="btn-interact">Use</button>
+        <button id="btn-crouch">Crouch</button>
+        <button id="btn-run">Run</button>
+      </div>
+    </div>
+  </div>
+
+  <canvas id="game-canvas"></canvas>
+</body>
+</html>
