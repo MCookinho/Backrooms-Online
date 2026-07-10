@@ -418,11 +418,32 @@ export class Level0 {
     const px = 54 * TILE + TILE / 2;
     const pz = 13 * TILE + TILE / 2;
 
-    const doorMat = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.7, metalness: 0.3 });
-    const frameMat = new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.4, roughness: 0.5 });
+    const doorMat = new THREE.MeshStandardMaterial({
+      map: this.textures.wallDiff,
+      roughness: 0.85,
+      metalness: 0,
+    });
+    const frameMat = new THREE.MeshStandardMaterial({
+      map: this.textures.footerDiff,
+      roughness: 0.6,
+      metalness: 0.1,
+      color: 0x887755,
+    });
     const barMat = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.8, roughness: 0.2 });
-    const signMat = new THREE.MeshStandardMaterial({ color: 0xcc4444, emissive: 0xcc2222, emissiveIntensity: 0.6 });
-    const signGlowMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.8 });
+    const signMat = new THREE.MeshStandardMaterial({
+      map: this.textures.ceilEmit,
+      color: 0xcc3333,
+      emissive: 0xcc2222,
+      emissiveIntensity: 0.6,
+      roughness: 0.3,
+    });
+    const signGlowMat = new THREE.MeshStandardMaterial({
+      color: 0xffeedd,
+      emissive: 0xffaa66,
+      emissiveIntensity: 0.3,
+      transparent: true,
+      opacity: 0.4,
+    });
 
     const frame = new THREE.Mesh(new THREE.BoxGeometry(1.4, 2.6, 0.12), frameMat);
     frame.position.set(px, 1.3, pz);
