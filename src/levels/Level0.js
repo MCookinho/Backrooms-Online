@@ -685,7 +685,7 @@ export class Level0 {
 
       const tryDeco = (nx, nz, isX, nX, nZ) => {
         if (this._isWalkable(nX, nZ)) return;
-        if (rng() > 0.05) return;
+        if (rng() > 0.13) return;
 
         const wallH = ROOM_H;
         const decoX = isX ? nx : (x * TILE + TILE / 2);
