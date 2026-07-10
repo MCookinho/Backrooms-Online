@@ -54,6 +54,8 @@ export class Game {
       this.levelManager.registerLevel(0, new Level0());
       await this.levelManager.loadLevel(0);
       this.interactables = this.levelManager.getCurrentLevel().getInteractables();
+      const sp = this.levelManager.getCurrentLevel().spawnPoint;
+      if (sp) this.player.respawn(sp);
 
       this._setLoadingProgress(70, 'Spawning entities...');
       this._spawnThreats();
@@ -79,15 +81,13 @@ export class Game {
   }
 
   _spawnThreats() {
-    const threatPositions = [
-      { x: 14, z: 10 },
-      { x: 6, z: 16 },
-    ];
+    const level = this.levelManager.getCurrentLevel();
+    const positions = level.getThreatPositions ? level.getThreatPositions() : [];
 
-    for (const pos of threatPositions) {
+    for (const pos of positions) {
       const threat = new Threat(
         this.renderer.getScene(),
-        new THREE.Vector3(pos.x, 0, pos.z),
+        pos,
         {
           type: 'hound',
           speed: 1.8 + Math.random() * 0.5,
