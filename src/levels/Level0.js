@@ -5,31 +5,35 @@ const TILE = 4;
 const ROOM_H = 3.5;
 const WALL_T = 0.15;
 
-const GW = 200;
-const GH = 140;
+const GW = 240;
+const GH = 160;
 
 const ITEM_PLACEMENTS = [
-  ['flashlight', 18, 17],
-  ['note', 10, 12],
-  ['almond_water', 25, 8],
-  ['almond_water', 42, 25],
-  ['batteries', 60, 15],
-  ['lighter', 80, 30],
-  ['almond_water', 95, 10],
-  ['note', 45, 50],
-  ['batteries', 110, 45],
-  ['medkit', 75, 85],
-  ['almond_water', 135, 55],
-  ['note', 160, 42],
-  ['lighter', 88, 65],
-  ['batteries', 50, 110],
-  ['almond_water', 96, 120],
-  ['medkit', 145, 90],
-  ['note', 40, 82],
-  ['note', 175, 75],
-  ['key', 194, 132],
-  ['note', 192, 136],
-  ['almond_water', 188, 130],
+  ['flashlight', 16, 20],
+  ['note', 12, 14],
+  ['almond_water', 28, 7],
+  ['almond_water', 46, 28],
+  ['batteries', 65, 16],
+  ['lighter', 85, 32],
+  ['almond_water', 98, 12],
+  ['note', 50, 55],
+  ['batteries', 110, 50],
+  ['medkit', 75, 88],
+  ['almond_water', 135, 65],
+  ['note', 180, 45],
+  ['lighter', 160, 28],
+  ['batteries', 90, 100],
+  ['almond_water', 120, 115],
+  ['medkit', 145, 95],
+  ['note', 45, 85],
+  ['note', 205, 78],
+  ['batteries', 55, 135],
+  ['almond_water', 100, 140],
+  ['medkit', 175, 130],
+  ['lighter', 215, 105],
+  ['key', 226, 146],
+  ['note', 224, 150],
+  ['almond_water', 220, 142],
 ];
 
 const ITEM_MODEL_MAP = {
@@ -64,82 +68,82 @@ function _makeMat(name, opts = {}) {
 }
 
 const ZONES = [
-  // [x, z, w, d, type, baseH]
+  // ── Row 0 (z:0-40) — Entry ground floor ──
+  [0, 0, 32, 40, 'spawn', 0],
+  [32, 0, 32, 40, 'rooms', 0],
+  [64, 0, 20, 40, 'garden', 0],
+  [84, 0, 32, 40, 'halls', 0],
+  [116, 0, 32, 40, 'rooms_lg', 0],
+  [148, 0, 20, 40, 'open', 0],
+  [168, 0, 32, 40, 'halls', 0],
+  [200, 0, 40, 40, 'rooms', 0],
 
-  // ── Row 0 (z:0-35) — Entry ground floor ──
-  [0, 0, 28, 35, 'spawn', 0],
-  [28, 0, 28, 35, 'rooms', 0],
-  [56, 0, 16, 35, 'garden', 0],
-  [72, 0, 28, 35, 'halls', 0],
-  [100, 0, 28, 35, 'rooms_lg', 0],
-  [128, 0, 20, 35, 'open', 0],
-  [148, 0, 28, 35, 'halls', 0],
-  [176, 0, 24, 35, 'rooms', 0],
+  // ── Row 1 (z:40-80) — Mid ground level ──
+  [0, 40, 28, 40, 'halls', 0],
+  [28, 40, 32, 40, 'rooms_lg', 0],
+  [60, 40, 24, 40, 'server', 0],
+  [84, 40, 32, 40, 'maze', 0],
+  [116, 40, 28, 40, 'halls', 0],
+  [144, 40, 20, 40, 'open', 0],
+  [164, 40, 32, 40, 'rooms', 0],
+  [196, 40, 44, 40, 'rooms_lg', 0],
 
-  // ── Row 1 (z:35-70) — Mid level ──
-  [0, 35, 24, 35, 'halls', 0],
-  [24, 35, 28, 35, 'rooms_lg', 0],
-  [52, 35, 24, 35, 'server', 0],
-  [76, 35, 28, 35, 'maze', 0],
-  [104, 35, 24, 35, 'halls', 0],
-  [128, 35, 20, 35, 'open', 0],
-  [148, 35, 28, 35, 'rooms', 0],
-  [176, 35, 24, 35, 'rooms_lg', 0],
+  // ── Row 2 (z:80-120) — Ground level, varied ──
+  [0, 80, 28, 40, 'basement', 0],
+  [28, 80, 32, 40, 'pits', 0],
+  [60, 80, 24, 40, 'maze', 0],
+  [84, 80, 32, 40, 'halls', 0],
+  [116, 80, 28, 40, 'basement', 0],
+  [144, 80, 20, 40, 'void', 0],
+  [164, 80, 32, 40, 'pits', 0],
+  [196, 80, 44, 40, 'halls', 0],
 
-  // ── Row 2 (z:70-105) — Transition / damage ──
-  [0, 70, 24, 35, 'basement', 0],
-  [24, 70, 28, 35, 'pits', 0],
-  [52, 70, 24, 35, 'maze', 0],
-  [76, 70, 28, 35, 'halls', 0],
-  [104, 70, 24, 35, 'basement', 0],
-  [128, 70, 20, 35, 'void', 0],
-  [148, 70, 28, 35, 'pits', 0],
-  [176, 70, 24, 35, 'halls', 0],
-
-  // ── Row 3 (z:105-140) — Deepest / void ──
-  [0, 105, 28, 35, 'basement', 0],
-  [28, 105, 28, 35, 'rooms', 0],
-  [56, 105, 24, 35, 'halls', 0],
-  [80, 105, 28, 35, 'maze', 0],
-  [108, 105, 24, 35, 'rooms_lg', 0],
-  [132, 105, 20, 35, 'void', 0],
-  [152, 105, 24, 35, 'basement', 0],
-  [176, 105, 24, 35, 'void', 0],
+  // ── Row 3 (z:120-160) — Underground level ──
+  [0, 120, 32, 40, 'basement', -1.5],
+  [32, 120, 32, 40, 'rooms', -1.5],
+  [64, 120, 24, 40, 'halls', -1.5],
+  [88, 120, 32, 40, 'maze', -1.5],
+  [120, 120, 32, 40, 'rooms_lg', -1.5],
+  [152, 120, 20, 40, 'void', -1.5],
+  [172, 120, 28, 40, 'basement', -1.5],
+  [200, 120, 40, 40, 'void', -1.0],
 ];
 
 const CONNECTORS = [
-  // Row 0 → 1 horizontal (z=35 border)
-  [26, 33, 4, 4], [54, 33, 4, 4], [70, 33, 4, 4], [98, 33, 4, 4],
-  [126, 33, 4, 4], [146, 33, 4, 4], [174, 33, 4, 4],
+  // Row 0 → 1 (z=40 border, same height)
+  [30, 38, 4, 4], [62, 38, 4, 4], [82, 38, 4, 4],
+  [114, 38, 4, 4], [146, 38, 4, 4], [166, 38, 4, 4], [198, 38, 4, 4],
 
-  // Row 1 → 2 horizontal (z=70 border)
-  [22, 68, 4, 4], [50, 68, 4, 4], [74, 68, 4, 4], [102, 68, 4, 4],
-  [126, 68, 4, 4], [146, 68, 4, 4], [174, 68, 4, 4],
+  // Row 1 → 2 (z=80 border, same height)
+  [26, 78, 4, 4], [58, 78, 4, 4], [82, 78, 4, 4],
+  [114, 78, 4, 4], [142, 78, 4, 4], [162, 78, 4, 4], [194, 78, 4, 4],
 
-  // Row 2 → 3 horizontal (z=105 border)
-  [22, 103, 4, 4], [50, 103, 4, 4], [74, 103, 4, 4], [102, 103, 4, 4],
-  [126, 103, 4, 4], [146, 103, 4, 4], [174, 103, 4, 4],
+  // Row 2 → 3 (z=120 border, different height — 1-tide-wide ramps)
+  [14, 118, 1, 4], [46, 118, 1, 4], [74, 118, 1, 4],
+  [102, 118, 1, 4], [132, 118, 1, 4], [158, 118, 1, 4],
+  [184, 118, 1, 4], [220, 118, 1, 4],
 
-  // Vertical connectors — 2-tide-wide full-height strips between zones
-  [27, 0, 2, 35], [55, 0, 2, 35], [71, 0, 2, 35], [99, 0, 2, 35],
-  [127, 0, 2, 35], [147, 0, 2, 35], [175, 0, 2, 35],
+  // Vertical connectors — zone borders within each row
+  [31, 0, 2, 40], [63, 0, 2, 40], [83, 0, 2, 40],
+  [115, 0, 2, 40], [147, 0, 2, 40], [167, 0, 2, 40], [199, 0, 2, 40],
 
-  [23, 35, 2, 35], [51, 35, 2, 35], [75, 35, 2, 35], [103, 35, 2, 35],
-  [127, 35, 2, 35], [147, 35, 2, 35], [175, 35, 2, 35],
+  [27, 40, 2, 40], [59, 40, 2, 40], [83, 40, 2, 40],
+  [115, 40, 2, 40], [143, 40, 2, 40], [163, 40, 2, 40], [195, 40, 2, 40],
 
-  [23, 70, 2, 35], [51, 70, 2, 35], [75, 70, 2, 35], [103, 70, 2, 35],
-  [127, 70, 2, 35], [147, 70, 2, 35], [175, 70, 2, 35],
+  [27, 80, 2, 40], [59, 80, 2, 40], [83, 80, 2, 40],
+  [115, 80, 2, 40], [143, 80, 2, 40], [163, 80, 2, 40], [195, 80, 2, 40],
 
-  [27, 105, 2, 35], [55, 105, 2, 35], [79, 105, 2, 35], [107, 105, 2, 35],
-  [131, 105, 2, 35], [151, 105, 2, 35], [175, 105, 2, 35],
+  [31, 120, 2, 40], [63, 120, 2, 40], [87, 120, 2, 40],
+  [119, 120, 2, 40], [151, 120, 2, 40], [171, 120, 2, 40], [199, 120, 2, 40],
 
-  // Diagonal / shortcut passages
-  [38, 48, 3, 4], [88, 18, 3, 4], [118, 95, 3, 4], [160, 60, 3, 4],
+  // Diagonal shortcut passages
+  [44, 44, 3, 4], [94, 18, 3, 4], [140, 95, 3, 4],
+  [178, 60, 3, 4], [210, 25, 3, 4], [36, 100, 3, 4],
 ];
 
 export class Level0 {
   constructor() {
-    this.spawnPoint = new THREE.Vector3(14 * TILE, 0, 17 * TILE);
+    this.spawnPoint = new THREE.Vector3(16 * TILE, 0, 20 * TILE);
     this.object3d = new THREE.Group();
     this.interactables = [];
     this.grid = null;
@@ -153,10 +157,12 @@ export class Level0 {
     this.grid = Array.from({ length: GH }, () => Array(GW).fill(' '));
     this.heightMap = Array.from({ length: GH }, () => Array(GW).fill(0));
 
-    // ── Zone generation ──
     this._genZones();
-    this._applyConnectors();
+
+    const connectorTiles = new Set();
+    this._applyConnectors(connectorTiles);
     this._punchDoorways();
+    this._wallHeightBorders(connectorTiles);
     this._clearSpawn();
     this._clearExit();
     this._collectWalkableTiles();
@@ -267,17 +273,27 @@ export class Level0 {
     }
   }
 
-  _applyConnectors() {
+  _applyConnectors(connectorTiles) {
     for (const [cx, cz, cw, ch] of CONNECTORS) {
       for (let dz = 0; dz < ch; dz++) {
         for (let dx = 0; dx < cw; dx++) {
           const tx = cx + dx, tz = cz + dz;
-          if (tx >= 0 && tx < GW && tz >= 0 && tz < GH && this.grid[tz][tx] === ' ') {
+          if (tx < 0 || tx >= GW || tz < 0 || tz >= GH) continue;
+          connectorTiles.add(`${tx},${tz}`);
+          if (this.grid[tz][tx] === ' ') {
             this.grid[tz][tx] = '.';
           }
+          this.heightMap[tz][tx] = this._getZoneBaseH(tx, tz);
         }
       }
     }
+  }
+
+  _getZoneBaseH(x, z) {
+    for (const [zx, zz, zw, zd, _t, baseH = 0] of ZONES) {
+      if (x >= zx && x < zx + zw && z >= zz && z < zz + zd) return baseH;
+    }
+    return 0;
   }
 
   _punchDoorways() {
@@ -297,8 +313,35 @@ export class Level0 {
     }
   }
 
+  _wallHeightBorders(connectorTiles) {
+    const toRemove = [];
+    for (let z = 0; z < GH; z++) {
+      for (let x = 0; x < GW; x++) {
+        if (this.grid[z][x] === ' ') continue;
+        const key = `${x},${z}`;
+        if (connectorTiles.has(key)) continue;
+        const h = this._getHeight(x, z);
+        for (const [nx, nz] of [[x+1,z],[x-1,z],[x,z+1],[x,z-1]]) {
+          if (nx < 0 || nx >= GW || nz < 0 || nz >= GH) continue;
+          if (this.grid[nz][nx] === ' ') continue;
+          const nKey = `${nx},${nz}`;
+          if (connectorTiles.has(nKey)) continue;
+          const nh = this._getHeight(nx, nz);
+          if (Math.abs(nh - h) > 0.01) {
+            if (h < nh) toRemove.push({x, z});
+            else toRemove.push({x: nx, z: nz});
+            break;
+          }
+        }
+      }
+    }
+    for (const {x, z} of toRemove) {
+      this.grid[z][x] = ' ';
+    }
+  }
+
   _clearSpawn() {
-    const sx = 14, sz = 17;
+    const sx = 16, sz = 20;
     for (let dz = -5; dz <= 5; dz++)
       for (let dx = -5; dx <= 5; dx++) {
         const tx = sx + dx, tz = sz + dz;
@@ -310,21 +353,21 @@ export class Level0 {
   }
 
   _clearExit() {
-    const ex = 196, ez = 134;
+    const ex = 228, ez = 148;
     for (let dz = -3; dz <= 3; dz++)
       for (let dx = -3; dx <= 3; dx++) {
         const tx = ex + dx, tz = ez + dz;
         if (tx >= 0 && tx < GW && tz >= 0 && tz < GH) {
           this.grid[tz][tx] = 'E';
-          this.heightMap[tz][tx] = 0;
+          this.heightMap[tz][tx] = this._getZoneBaseH(tx, tz);
         }
       }
 
-    for (let z = 128; z <= 139; z++)
-      for (let x = 190; x <= 199; x++) {
+    for (let z = 140; z <= 155; z++)
+      for (let x = 220; x <= 235; x++) {
         if (z >= 0 && z < GH && x >= 0 && x < GW) {
           this.grid[z][x] = '.';
-          this.heightMap[z][x] = 0;
+          this.heightMap[z][x] = this._getZoneBaseH(x, z);
         }
       }
   }
@@ -409,7 +452,10 @@ export class Level0 {
     this._buildUnderFloor();
     this._buildFloor();
     this._buildCeiling();
+    this._buildFloorSteps();
+    this._buildCeilingSteps();
     this._buildWalls();
+    this._buildRamps();
     this._buildPitWalls();
     this._buildPitFloors();
     this._createLights();
@@ -444,14 +490,14 @@ export class Level0 {
     });
     const floorTiles = this._walkableTiles.filter(({ x, z }) => {
       const h = this._getHeight(x, z);
-      const skipRamp = ([nx, nz]) => {
-        if (nx >= GW || nz >= GH) return false;
-        if (!this._isWalkable(nx, nz)) return false;
+      for (const [nx, nz] of [[x+1,z],[x,z+1]]) {
+        if (nx >= GW || nz >= GH) continue;
+        if (!this._isWalkable(nx, nz)) continue;
         const nh = this._getHeight(nx, nz);
         const dh = Math.abs(nh - h);
-        return dh >= 0.1 && dh <= 2.0;
-      };
-      return !skipRamp([x+1,z]) && !skipRamp([x,z+1]);
+        if (dh >= 0.1 && dh <= 2.0) return false;
+      }
+      return true;
     });
     const geom = new THREE.PlaneGeometry(TILE, TILE);
     const count = floorTiles.length;
@@ -491,6 +537,64 @@ export class Level0 {
     }
     mesh.instanceMatrix.needsUpdate = true;
     this.object3d.add(mesh);
+  }
+
+  _buildFloorSteps() {
+    const mat = _makeMat('floorStep', {
+      map: this.textures.wallDiff, normalMap: this.textures.wallNor,
+      roughness: 0.85,
+    });
+    const geoms = [];
+    for (const { x, z } of this._walkableTiles) {
+      const h = this._getHeight(x, z);
+      for (const [nx, nz] of [[x+1,z],[x,z+1]]) {
+        if (nx >= GW || nz >= GH || !this._isWalkable(nx, nz)) continue;
+        const nh = this._getHeight(nx, nz);
+        const dh = Math.abs(nh - h);
+        if (dh <= 0.01 || (dh >= 0.1 && dh <= 2.0)) continue;
+        const isX = nx !== x;
+        const w = isX ? WALL_T : TILE;
+        const d = isX ? TILE : WALL_T;
+        const g = new THREE.BoxGeometry(w, dh, d);
+        const cx = isX ? (x + 1) * TILE : x * TILE + TILE / 2;
+        const cz = isX ? z * TILE + TILE / 2 : (z + 1) * TILE;
+        g.translate(cx, Math.min(h, nh) + dh / 2, cz);
+        geoms.push(g);
+      }
+    }
+    if (geoms.length > 0) {
+      const merged = mergeGeoms(geoms);
+      this.object3d.add(new THREE.Mesh(merged, mat));
+    }
+  }
+
+  _buildCeilingSteps() {
+    const mat = _makeMat('ceilStep', {
+      map: this.textures.wallDiff, normalMap: this.textures.wallNor,
+      roughness: 0.85,
+    });
+    const geoms = [];
+    for (const { x, z } of this._walkableTiles) {
+      const h = this._getHeight(x, z) + ROOM_H;
+      for (const [nx, nz] of [[x+1,z],[x,z+1]]) {
+        if (nx >= GW || nz >= GH || !this._isWalkable(nx, nz)) continue;
+        const nh = this._getHeight(nx, nz) + ROOM_H;
+        const dh = Math.abs(nh - h);
+        if (dh <= 0.01) continue;
+        const isX = nx !== x;
+        const w = isX ? WALL_T : TILE;
+        const d = isX ? TILE : WALL_T;
+        const g = new THREE.BoxGeometry(w, dh, d);
+        const cx = isX ? (x + 1) * TILE : x * TILE + TILE / 2;
+        const cz = isX ? z * TILE + TILE / 2 : (z + 1) * TILE;
+        g.translate(cx, Math.min(h, nh) + dh / 2, cz);
+        geoms.push(g);
+      }
+    }
+    if (geoms.length > 0) {
+      const merged = mergeGeoms(geoms);
+      this.object3d.add(new THREE.Mesh(merged, mat));
+    }
   }
 
   _buildWalls() {
@@ -536,30 +640,88 @@ export class Level0 {
     merge(geomsZ, wallMat);
   }
 
-  _buildPitFloors() {
-    const mat = _makeMat('pitFloor', {
+  _buildRamps() {
+    const rampMat = _makeMat('ramp', {
       map: this.textures.floorDiff, normalMap: this.textures.floorNorm,
-      roughness: 0.95, side: THREE.DoubleSide, color: 0x555555,
+      roughness: 0.9, side: THREE.DoubleSide,
     });
-    const pitTiles = [];
-    for (let z = 0; z < GH; z++)
-      for (let x = 0; x < GW; x++)
-        if (this.grid[z][x] === ' ' && this._getHeight(x, z) < -1.0)
-          pitTiles.push({ x, z });
-    if (pitTiles.length === 0) return;
-    const geom = new THREE.PlaneGeometry(TILE, TILE);
-    const mesh = new THREE.InstancedMesh(geom, mat, pitTiles.length);
-    const dummy = new THREE.Object3D();
-    for (let i = 0; i < pitTiles.length; i++) {
-      const { x, z } = pitTiles[i];
+    const sideMat = _makeMat('rampSide', {
+      map: this.textures.wallDiff, normalMap: this.textures.wallNor,
+      roughness: 0.85,
+    });
+    const rampGeoms = [];
+    const sideGeoms = [];
+
+    for (const { x, z } of this._walkableTiles) {
       const h = this._getHeight(x, z);
-      dummy.position.set(x * TILE + TILE / 2, h, z * TILE + TILE / 2);
-      dummy.rotation.x = -Math.PI / 2;
-      dummy.updateMatrix();
-      mesh.setMatrixAt(i, dummy.matrix);
+      for (const [nx, nz] of [[x + 1, z], [x, z + 1], [x - 1, z], [x, z - 1]]) {
+        if (nx < 0 || nx >= GW || nz < 0 || nz >= GH) continue;
+        if (!this._isWalkable(nx, nz)) continue;
+        const nh = this._getHeight(nx, nz);
+        const dh = nh - h;
+        if (Math.abs(dh) < 0.1 || Math.abs(dh) > 2.0) continue;
+
+        const isX = nx !== x;
+        const ox = isX ? Math.min(x, nx) : x;
+        const oz = isX ? z : Math.min(z, nz);
+        if (x !== ox || z !== oz) continue;
+
+        const px = ox * TILE, pz = oz * TILE;
+        const oh = this._getHeight(ox, oz);
+        const oNh = isX ? this._getHeight(ox + 1, oz) : this._getHeight(ox, oz + 1);
+        const absDh = Math.abs(oNh - oh);
+
+        if (isX) {
+          const verts = new Float32Array([
+            px, oh, pz, px + TILE, oNh, pz + TILE, px + TILE, oNh, pz,
+            px, oh, pz, px, oh, pz + TILE, px + TILE, oNh, pz + TILE,
+          ]);
+          const g = new THREE.BufferGeometry();
+          g.setAttribute('position', new THREE.BufferAttribute(verts, 3));
+          g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array([
+            0, 0, 1, 1, 1, 0,
+            0, 0, 0, 1, 1, 1,
+          ]), 2));
+          g.computeVertexNormals();
+          rampGeoms.push(g);
+        } else {
+          const verts = new Float32Array([
+            px, oh, pz, px + TILE, oNh, pz + TILE, px + TILE, oh, pz,
+            px, oh, pz, px, oNh, pz + TILE, px + TILE, oNh, pz + TILE,
+          ]);
+          const g = new THREE.BufferGeometry();
+          g.setAttribute('position', new THREE.BufferAttribute(verts, 3));
+          g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array([
+            0, 0, 1, 1, 1, 0,
+            0, 0, 0, 1, 1, 1,
+          ]), 2));
+          g.computeVertexNormals();
+          rampGeoms.push(g);
+        }
+
+        const sw = WALL_T;
+        if (isX) {
+          for (const sz of [pz, pz + TILE]) {
+            const sg = new THREE.BoxGeometry(TILE, absDh, sw);
+            sg.translate(px + TILE / 2, Math.min(oh, oNh) + absDh / 2, sz);
+            sideGeoms.push(sg);
+          }
+        } else {
+          for (const sx of [px, px + TILE]) {
+            const sg = new THREE.BoxGeometry(sw, absDh, TILE);
+            sg.translate(sx, Math.min(oh, oNh) + absDh / 2, pz + TILE / 2);
+            sideGeoms.push(sg);
+          }
+        }
+      }
     }
-    mesh.instanceMatrix.needsUpdate = true;
-    this.object3d.add(mesh);
+
+    if (rampGeoms.length > 0) {
+      this.object3d.add(new THREE.Mesh(mergeGeoms(rampGeoms), rampMat));
+    }
+    if (sideGeoms.length > 0) {
+      this.object3d.add(new THREE.Mesh(mergeGeoms(sideGeoms), sideMat));
+    }
   }
 
   _buildPitWalls() {
@@ -594,6 +756,32 @@ export class Level0 {
       const merged = mergeGeoms(pitGeoms);
       this.object3d.add(new THREE.Mesh(merged, pitMat));
     }
+  }
+
+  _buildPitFloors() {
+    const mat = _makeMat('pitFloor', {
+      map: this.textures.floorDiff, normalMap: this.textures.floorNorm,
+      roughness: 0.95, side: THREE.DoubleSide, color: 0x555555,
+    });
+    const pitTiles = [];
+    for (let z = 0; z < GH; z++)
+      for (let x = 0; x < GW; x++)
+        if (this.grid[z][x] === ' ' && this._getHeight(x, z) < -1.0)
+          pitTiles.push({ x, z });
+    if (pitTiles.length === 0) return;
+    const geom = new THREE.PlaneGeometry(TILE, TILE);
+    const mesh = new THREE.InstancedMesh(geom, mat, pitTiles.length);
+    const dummy = new THREE.Object3D();
+    for (let i = 0; i < pitTiles.length; i++) {
+      const { x, z } = pitTiles[i];
+      const h = this._getHeight(x, z);
+      dummy.position.set(x * TILE + TILE / 2, h, z * TILE + TILE / 2);
+      dummy.rotation.x = -Math.PI / 2;
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    this.object3d.add(mesh);
   }
 
   _createLights() {
@@ -741,8 +929,8 @@ export class Level0 {
   }
 
   _createExit() {
-    const px = 196 * TILE + TILE / 2, pz = 134 * TILE + TILE / 2;
-    const floorH = this._getHeight(196, 134);
+    const px = 228 * TILE + TILE / 2, pz = 148 * TILE + TILE / 2;
+    const floorH = this._getHeight(228, 148);
     const doorMat = _makeMat('door', { map: this.textures.wallDiff });
     const frameMat = _makeMat('frame', { map: this.textures.wallDiff, roughness: 0.6, metalness: 0.1, color: 0x887755 });
     const barMat = _makeMat('bar', { color: 0x888888, metalness: 0.8, roughness: 0.2 });
