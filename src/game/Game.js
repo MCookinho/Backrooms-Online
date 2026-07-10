@@ -43,28 +43,39 @@ export class Game {
   async init() {
     this.audio.init();
 
-    this.levelManager.registerLevel(0, new Level0());
-    await this.levelManager.loadLevel(0);
-
-    this.interactables = this.levelManager.getCurrentLevel().getInteractables();
-
     const scene = this.renderer.getScene();
+    scene.background = new THREE.Color(0x222244);
 
     const testCube = new THREE.Mesh(
       new THREE.BoxGeometry(1, 1, 1),
       new THREE.MeshStandardMaterial({ color: 0xff4444 })
     );
-    testCube.position.set(2, 0.5, 1);
+    testCube.position.set(0, 0.5, -2);
     scene.add(testCube);
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 2);
-    dirLight.position.set(10, 20, 10);
+    const floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(10, 10),
+      new THREE.MeshStandardMaterial({ color: 0x888888, side: THREE.DoubleSide })
+    );
+    floor.rotation.x = -Math.PI / 2;
+    scene.add(floor);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    dirLight.position.set(5, 10, 5);
     scene.add(dirLight);
 
-    const hemiLight = new THREE.HemisphereLight(0xffeedd, 0x888888, 1.0);
-    scene.add(hemiLight);
+    const ambLight = new THREE.AmbientLight(0x444466, 0.6);
+    scene.add(ambLight);
 
-    this._spawnThreats();
+    try {
+      this.levelManager.registerLevel(0, new Level0());
+      await this.levelManager.loadLevel(0);
+      this.interactables = this.levelManager.getCurrentLevel().getInteractables();
+      this._spawnThreats();
+    } catch (e) {
+      console.warn('Level 0 failed to load:', e);
+    }
+
     this.running = true;
     this.audio.playAmbience('level0');
 
@@ -111,14 +122,14 @@ export class Game {
       }
     });
 
-    document.addEventListener('click', (e) => {
-      if (!this.input.isPointerLocked() && e.target.tagName !== 'BUTTON') {
+    document.addEventListener('click', () => {
+      if (!document.pointerLockElement) {
         this.canvas.requestPointerLock();
       }
     });
 
     document.addEventListener('keydown', (e) => {
-      if (e.code === 'Escape' && this.input.isPointerLocked()) {
+      if (e.code === 'Escape' && document.pointerLockElement) {
         document.exitPointerLock();
       }
     });

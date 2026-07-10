@@ -17,8 +17,7 @@ export class GameRenderer {
     this.renderer.toneMappingExposure = 0.8;
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x444444);
-    this.scene.fog = new THREE.FogExp2(0x444444, 0.015);
+    this.scene.background = new THREE.Color(0x222244);
 
     this.camera = new THREE.PerspectiveCamera(
       75,

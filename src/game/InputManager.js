@@ -135,7 +135,7 @@ export class InputManager {
   }
 
   isPointerLocked() {
-    return this.locked;
+    return document.pointerLockElement === this.canvas;
   }
 
   isMobileDevice() {
