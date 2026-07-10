@@ -62,16 +62,6 @@ const ITEM_PLACEMENTS = [
   ['key', 51, 13],
 ];
 
-const ENTITY_PLACEMENTS = [
-  ['hound', 30, 14, { speed: 1.8, aggroRange: 8, damage: 12, patrolRadius: 4 }],
-  ['hound', 8, 13, { speed: 1.6, aggroRange: 7, damage: 15, patrolRadius: 3 }],
-  ['faceling', 12, 5, { speed: 0.9, aggroRange: 5, damage: 8, patrolRadius: 3 }],
-  ['faceling', 29, 22, { speed: 1.0, aggroRange: 6, damage: 10, patrolRadius: 4 }],
-  ['faceling', 38, 14, { speed: 0.8, aggroRange: 5, damage: 8, patrolRadius: 3 }],
-  ['duller', 50, 10, {}],
-  ['duller', 6, 18, {}],
-];
-
 const ITEM_MODEL_MAP = {
   almond_water: 'water_bottle.glb',
   flashlight: 'flashlight.glb',
@@ -88,12 +78,6 @@ const FURNITURE_MODEL_MAP = {
   water_cooler: 'water_cooler.glb',
 };
 
-const THREAT_MODEL_MAP = {
-  hound: 'dog.glb',
-  faceling: 'human.glb',
-  duller: 'human.glb',
-};
-
 export class Level0 {
   constructor() {
     this.spawnPoint = new THREE.Vector3((23 + 0.5) * TILE, 0, (12 + 0.5) * TILE);
@@ -102,7 +86,6 @@ export class Level0 {
     this.props = [];
     this.lights = [];
     this.wallBoxes = [];
-    this.entities = [];
     this.grid = null;
     this.textures = {};
     this.models = {};
@@ -179,10 +162,6 @@ export class Level0 {
       const name = key.replace('.glb', '');
       if (!this.models[name]) modelPromises.push(loadModel(name, key));
     }
-    for (const key of Object.values(THREAT_MODEL_MAP)) {
-      const name = key.replace('.glb', '');
-      if (!this.models[name]) modelPromises.push(loadModel(name, key));
-    }
 
     await Promise.all(modelPromises);
   }
@@ -212,7 +191,6 @@ export class Level0 {
     this._addWallDetails();
     this._createProps();
     this._createItems();
-    this._placeEntities();
     this._createExit();
   }
 
@@ -511,19 +489,6 @@ export class Level0 {
     }
   }
 
-  _placeEntities() {
-    for (const [type, gx, gz, config] of ENTITY_PLACEMENTS) {
-      this.entities.push({
-        type,
-        position: new THREE.Vector3(gx * TILE + TILE / 2, 0, gz * TILE + TILE / 2),
-        speed: config.speed || 0,
-        aggroRange: config.aggroRange || 0,
-        patrolRadius: config.patrolRadius || 0,
-        damage: config.damage || 0,
-      });
-    }
-  }
-
   _createExit() {
     const px = 54 * TILE + TILE / 2;
     const pz = 13 * TILE + TILE / 2;
@@ -578,12 +543,6 @@ export class Level0 {
     });
   }
 
-  getThreatModel(type) {
-    const filename = THREAT_MODEL_MAP[type] || 'dog.glb';
-    const key = filename.replace('.glb', '');
-    return this.models[key] ? this.models[key].clone(true) : null;
-  }
-
   getWallColliders() { return this.wallBoxes; }
 
   update(delta) {
@@ -595,6 +554,4 @@ export class Level0 {
   }
 
   getInteractables() { return this.interactables; }
-
-  getThreatPositions() { return this.entities; }
 }
