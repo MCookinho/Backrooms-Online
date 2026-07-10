@@ -37,14 +37,14 @@ export class AudioManager {
       this.ambienceGain.connect(this.masterGain);
 
       this.initialized = true;
-      this._loadSounds();
+      this._loadPromise = this._loadSounds();
     } catch (e) {
       console.warn('AudioManager: Web Audio not available');
     }
   }
 
   async _loadSounds() {
-    for (const [name, url] of Object.entries(SOUND_URLS)) {
+    const promises = Object.entries(SOUND_URLS).map(async ([name, url]) => {
       try {
         const resp = await fetch(url);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -53,7 +53,8 @@ export class AudioManager {
       } catch (e) {
         console.warn(`AudioManager: failed to load "${name}"`);
       }
-    }
+    });
+    await Promise.all(promises);
   }
 
   _ensureResumed() {
@@ -69,10 +70,10 @@ export class AudioManager {
 
     switch (name) {
       case 'footstep':
-        this._playBuffer('footstep', 0.9 + Math.random() * 0.2, 0.6);
+        this._playBuffer('footstep', 0.85 + Math.random() * 0.3, 1.0);
         break;
       case 'footstep_run':
-        this._playBuffer('footstep_run', 1.1 + Math.random() * 0.2, 0.5);
+        this._playBuffer('footstep_run', 1.3 + Math.random() * 0.3, 1.4);
         break;
       case 'flashlight':
         this._playBuffer('flashlight', 1, 0.8);
@@ -152,12 +153,14 @@ export class AudioManager {
     source.start(0);
   }
 
-  playAmbience(name) {
+  async playAmbience(name) {
     if (!this.initialized) return;
     this._ensureResumed();
     if (this.ambienceNodes[name]) return;
 
-    if (name === 'level0' && this.buffers.ambience) {
+    if (name === 'level0') {
+      await this._loadPromise;
+      if (!this.buffers.ambience) return;
       const source = this.ctx.createBufferSource();
       source.buffer = this.buffers.ambience;
       source.loop = true;

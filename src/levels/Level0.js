@@ -327,9 +327,12 @@ export class Level0 {
     this._buildUnderFloor();
     this._buildFloor();
     this._buildCeiling();
+    this._buildFloorSteps();
+    this._buildCeilingSteps();
     this._buildWalls();
     this._buildRamps();
     this._buildPitWalls();
+    this._buildPitFloors();
     this._createLights();
     this._createProps();
     this._createItems();
@@ -358,15 +361,25 @@ export class Level0 {
   _buildFloor() {
     const mat = _makeMat('floor', {
       map: this.textures.floorDiff, normalMap: this.textures.floorNorm,
-      roughness: 0.9,
+      roughness: 0.9, side: THREE.DoubleSide,
+    });
+    const floorTiles = this._walkableTiles.filter(({ x, z }) => {
+      const h = this._getHeight(x, z);
+      for (const [nx, nz] of [[x+1,z],[x,z+1],[x-1,z],[x,z-1]]) {
+        if (!this._isWalkable(nx, nz)) continue;
+        const nh = this._getHeight(nx, nz);
+        const dh = nh - h;
+        if (dh >= 0.1 && dh <= 2.0) return false;
+      }
+      return true;
     });
     const geom = new THREE.PlaneGeometry(TILE, TILE);
-    const count = this._walkableTiles.length;
+    const count = floorTiles.length;
     if (count === 0) return;
     const mesh = new THREE.InstancedMesh(geom, mat, count);
     const dummy = new THREE.Object3D();
     for (let i = 0; i < count; i++) {
-      const { x, z } = this._walkableTiles[i];
+      const { x, z } = floorTiles[i];
       const h = this._getHeight(x, z);
       dummy.position.set(x * TILE + TILE / 2, h, z * TILE + TILE / 2);
       dummy.rotation.x = -Math.PI / 2;
@@ -381,6 +394,7 @@ export class Level0 {
     const mat = _makeMat('ceiling', {
       map: this.textures.ceilDiff, normalMap: this.textures.ceilNor,
       roughnessMap: this.textures.ceilRough, color: 0xeee8e0,
+      side: THREE.DoubleSide,
     });
     const geom = new THREE.PlaneGeometry(TILE, TILE);
     const count = this._walkableTiles.length;
@@ -392,6 +406,81 @@ export class Level0 {
       const h = this._getHeight(x, z);
       dummy.position.set(x * TILE + TILE / 2, h + ROOM_H, z * TILE + TILE / 2);
       dummy.rotation.x = Math.PI / 2;
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    this.object3d.add(mesh);
+  }
+
+  _buildFloorSteps() {
+    const mat = _makeMat('floorStep', { color: 0x8a8a7a, roughness: 0.9 });
+    const geoms = [];
+    for (const { x, z } of this._walkableTiles) {
+      const h = this._getHeight(x, z);
+      for (const [nx, nz] of [[x+1,z],[x,z+1]]) {
+        if (nx >= GW || nz >= GH || !this._isWalkable(nx, nz)) continue;
+        const nh = this._getHeight(nx, nz);
+        const dh = Math.abs(nh - h);
+        if (dh <= 0.01 || (dh >= 0.1 && dh <= 2.0)) continue;
+        const isX = nx !== x;
+        const w = isX ? WALL_T : TILE;
+        const d = isX ? TILE : WALL_T;
+        const g = new THREE.BoxGeometry(w, dh, d);
+        const cx = isX ? (x + 1) * TILE : x * TILE + TILE / 2;
+        const cz = isX ? z * TILE + TILE / 2 : (z + 1) * TILE;
+        g.translate(cx, Math.min(h, nh) + dh / 2, cz);
+        geoms.push(g);
+      }
+    }
+    if (geoms.length > 0) {
+      const merged = mergeGeoms(geoms);
+      this.object3d.add(new THREE.Mesh(merged, mat));
+    }
+  }
+
+  _buildCeilingSteps() {
+    const mat = _makeMat('ceilStep', { color: 0xccc8c0, roughness: 0.9 });
+    const geoms = [];
+    for (const { x, z } of this._walkableTiles) {
+      const h = this._getHeight(x, z) + ROOM_H;
+      for (const [nx, nz] of [[x+1,z],[x,z+1]]) {
+        if (nx >= GW || nz >= GH || !this._isWalkable(nx, nz)) continue;
+        const nh = this._getHeight(nx, nz) + ROOM_H;
+        const dh = Math.abs(nh - h);
+        if (dh <= 0.01) continue;
+        const isX = nx !== x;
+        const w = isX ? WALL_T : TILE;
+        const d = isX ? TILE : WALL_T;
+        const g = new THREE.BoxGeometry(w, dh, d);
+        const cx = isX ? (x + 1) * TILE : x * TILE + TILE / 2;
+        const cz = isX ? z * TILE + TILE / 2 : (z + 1) * TILE;
+        g.translate(cx, Math.min(h, nh) + dh / 2, cz);
+        geoms.push(g);
+      }
+    }
+    if (geoms.length > 0) {
+      const merged = mergeGeoms(geoms);
+      this.object3d.add(new THREE.Mesh(merged, mat));
+    }
+  }
+
+  _buildPitFloors() {
+    const mat = _makeMat('pitFloor', { color: 0x222222, roughness: 1, metalness: 0, side: THREE.DoubleSide });
+    const pitTiles = [];
+    for (let z = 0; z < GH; z++)
+      for (let x = 0; x < GW; x++)
+        if (this.grid[z][x] === ' ' && this._getHeight(x, z) <= -1.5)
+          pitTiles.push({ x, z });
+    if (pitTiles.length === 0) return;
+    const geom = new THREE.PlaneGeometry(TILE, TILE);
+    const mesh = new THREE.InstancedMesh(geom, mat, pitTiles.length);
+    const dummy = new THREE.Object3D();
+    for (let i = 0; i < pitTiles.length; i++) {
+      const { x, z } = pitTiles[i];
+      const h = this._getHeight(x, z);
+      dummy.position.set(x * TILE + TILE / 2, h, z * TILE + TILE / 2);
+      dummy.rotation.x = -Math.PI / 2;
       dummy.updateMatrix();
       mesh.setMatrixAt(i, dummy.matrix);
     }
@@ -479,13 +568,13 @@ export class Level0 {
         if (isX) {
           for (const sz of [pz, pz + TILE]) {
             const sg = new THREE.BoxGeometry(TILE, dh, sw);
-            sg.translate(px + TILE / 2, h, sz);
+            sg.translate(px + TILE / 2, h + dh / 2, sz);
             geoms.push(sg);
           }
         } else {
           for (const sx of [px, px + TILE]) {
             const sg = new THREE.BoxGeometry(sw, dh, TILE);
-            sg.translate(sx, h, pz + TILE / 2);
+            sg.translate(sx, h + dh / 2, pz + TILE / 2);
             geoms.push(sg);
           }
         }

@@ -48,6 +48,7 @@ export class Player {
     this.yaw = 0;
 
     this.staminaTimer = 0;
+    this._sprintLocked = false;
 
     this.raycaster = new THREE.Raycaster();
     this.wallBoxes = [];
@@ -185,9 +186,13 @@ export class Player {
     const input = this.input;
     const isMobile = input.isMobileDevice();
 
-    this.isCrouching = input.isKeyDown('KeyC');
-    if (input.isKeyDown('ShiftLeft') || input.isKeyDown('ShiftRight')) {
-      this.isRunning = this.stamina > 0 && !this.isCrouching && this.isMoving;
+    this.isCrouching = input.isKeyDown('KeyC') || input.isKeyDown('ControlLeft') || input.isKeyDown('ControlRight');
+    const shiftHeld = input.isKeyDown('ShiftLeft') || input.isKeyDown('ShiftRight');
+    if (!shiftHeld) {
+      this._sprintLocked = false;
+    }
+    if (shiftHeld) {
+      this.isRunning = this.stamina > 0 && !this.isCrouching && this.isMoving && !this._sprintLocked;
     } else {
       this.isRunning = false;
     }
@@ -280,7 +285,7 @@ export class Player {
 
         if (grid[gz][gx] === ' ') return true;
 
-        if (this.getFloorHeight) {
+        if (this.isGrounded && this.getFloorHeight) {
           const fh = this.getFloorHeight(wx, wz);
           if (fh !== null && Math.abs(this.position.y - fh) > 0.5) return true;
         }
@@ -353,7 +358,7 @@ export class Player {
       const footSpeed = this.isCrouching ? CROUCH_SPEED : (this.isRunning ? RUN_SPEED : WALK_SPEED);
       this._footstepTimer -= delta;
       if (this._footstepTimer <= 0) {
-        const interval = 0.45 / Math.max(footSpeed / WALK_SPEED, 0.5);
+        const interval = 0.45 / Math.max(footSpeed / WALK_SPEED, 0.5) * (0.9 + Math.random() * 0.2);
         this._footstepTimer = interval;
         this.audio.play(this.isRunning ? 'footstep_run' : 'footstep');
       }
@@ -381,7 +386,10 @@ export class Player {
 
     if (this.isRunning && this.isMoving) {
       this.stamina = Math.max(0, this.stamina - STAMINA_DRAIN * STAMINA_TICK);
-      if (this.stamina <= 0) this.isRunning = false;
+      if (this.stamina <= 0) {
+        this.isRunning = false;
+        this._sprintLocked = true;
+      }
     } else {
       this.stamina = Math.min(this.maxStamina, this.stamina + STAMINA_REGEN * STAMINA_TICK);
     }
