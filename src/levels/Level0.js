@@ -287,7 +287,7 @@ export class Level0 {
 
     const addWall = (px, pz, w, d, isX) => {
       const wg = new THREE.BoxGeometry(w, ROOM_H - FOOTER_H, d);
-      wg.translate(px, FOOTER_H / 2 + (ROOM_H - FOOTER_H) / 2, pz);
+      wg.translate(px, FOOTER_H + (ROOM_H - FOOTER_H) / 2, pz);
       (isX ? wallGeomsX : wallGeomsZ).push(wg);
       const fg = isX
         ? new THREE.BoxGeometry(w + d, FOOTER_H, d + 0.02)
