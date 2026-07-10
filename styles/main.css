@@ -434,7 +434,7 @@ canvas {
 
 #inv-frame {
   position: relative;
-  width: 620px;
+  width: 580px;
   max-width: 94vw;
   background: rgba(235, 225, 210, 0.06);
   backdrop-filter: blur(18px);
@@ -444,30 +444,31 @@ canvas {
     0 12px 48px rgba(0, 0, 0, 0.35),
     inset 0 0 0 1px rgba(255, 255, 250, 0.04),
     inset 0 0 60px rgba(220, 200, 170, 0.02);
-  padding: 24px 28px 20px;
+  padding: 20px 24px 16px;
   pointer-events: auto;
-  transition: background 0.3s ease;
 }
 
 #inv-header {
-  text-align: center;
-  margin-bottom: 20px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid rgba(220, 200, 170, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(220, 200, 170, 0.1);
 }
 
 #inv-title {
   font-family: 'Courier New', monospace;
-  font-size: 1rem;
+  font-size: 0.85rem;
   font-weight: 600;
-  letter-spacing: 8px;
-  color: rgba(240, 230, 215, 0.7);
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  letter-spacing: 6px;
+  color: rgba(240, 230, 215, 0.55);
 }
 
 #inv-body {
   display: flex;
-  gap: 20px;
+  gap: 16px;
   align-items: stretch;
 }
 
@@ -477,20 +478,20 @@ canvas {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
   min-width: 0;
 }
 
 #inventory-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  gap: 8px;
 }
 
 .inv-slot {
   aspect-ratio: 1;
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(220, 200, 170, 0.13);
+  border: 1px solid rgba(220, 200, 170, 0.12);
   border-radius: 4px;
   display: flex;
   flex-direction: column;
@@ -498,65 +499,62 @@ canvas {
   justify-content: center;
   cursor: pointer;
   transition: all 0.15s ease;
-  position: relative;
-  min-height: 76px;
-  padding: 6px;
+  padding: 4px;
 }
 
 .inv-slot:hover {
   background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(220, 200, 170, 0.3);
-  box-shadow: 0 0 20px rgba(220, 200, 170, 0.06);
+  border-color: rgba(220, 200, 170, 0.28);
 }
 
 .inv-slot .inv-icon {
-  font-size: 1.8rem;
+  font-size: 1.6rem;
   line-height: 1;
-  margin-bottom: 4px;
-  color: rgba(240, 230, 215, 0.8);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  margin-bottom: 3px;
+  color: rgba(240, 230, 215, 0.75);
 }
 
 .inv-slot .inv-name {
-  font-size: 0.7rem;
-  color: rgba(240, 230, 215, 0.55);
+  font-size: 0.6rem;
+  color: rgba(240, 230, 215, 0.5);
   text-align: center;
-  line-height: 1.25;
-  padding: 0 3px;
+  line-height: 1.2;
+  padding: 0 2px;
   word-break: break-word;
   font-weight: 500;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
+  max-width: 100%;
 }
 
 .inv-idx {
-  font-size: 0.85rem;
-  color: rgba(240, 230, 215, 0.18);
+  font-size: 0.8rem;
+  color: rgba(240, 230, 215, 0.15);
   font-family: 'Courier New', monospace;
 }
 
 #inv-footer {
   text-align: center;
-  padding-top: 10px;
-  border-top: 1px solid rgba(220, 200, 170, 0.08);
+  padding-top: 8px;
+  border-top: 1px solid rgba(220, 200, 170, 0.07);
 }
 
 #inventory-info {
   font-family: 'Courier New', monospace;
-  font-size: 0.65rem;
-  color: rgba(240, 230, 215, 0.25);
+  font-size: 0.6rem;
+  color: rgba(240, 230, 215, 0.2);
   letter-spacing: 2px;
 }
 
-/* ── Right side: equipment — uniform vertical stack ── */
+/* ── Right side: equipment ── */
 
 #inv-right {
-  width: 160px;
+  width: 148px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
   border-left: 1px solid rgba(220, 200, 170, 0.08);
-  padding-left: 18px;
+  padding-left: 16px;
 }
 
 #inv-equipment {
@@ -564,7 +562,7 @@ canvas {
   flex-direction: column;
   width: 100%;
   border: 1px solid rgba(220, 200, 170, 0.1);
-  border-radius: 6px;
+  border-radius: 5px;
   overflow: hidden;
 }
 
@@ -572,11 +570,12 @@ canvas {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px 14px;
+  gap: 10px;
+  padding: 14px 12px;
   background: rgba(255, 255, 255, 0.03);
   cursor: pointer;
   transition: all 0.15s ease;
+  flex: 1;
 }
 
 .equip-slot + .equip-slot {
@@ -589,12 +588,12 @@ canvas {
 
 .equip-icon {
   flex-shrink: 0;
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  font-size: 0.85rem;
   color: rgba(240, 230, 215, 0.2);
   border: 1px solid rgba(220, 200, 170, 0.12);
   transition: all 0.2s ease;
@@ -605,39 +604,39 @@ canvas {
 }
 
 .equip-torso {
-  border-radius: 6px;
+  border-radius: 5px;
 }
 
 .equip-legs {
-  border-radius: 4px;
+  border-radius: 3px;
 }
 
 .equip-slot[data-filled="true"] .equip-icon {
-  color: rgba(240, 230, 215, 0.7);
-  border-color: rgba(220, 200, 170, 0.35);
-  background: rgba(255, 255, 255, 0.06);
+  color: rgba(240, 230, 215, 0.65);
+  border-color: rgba(220, 200, 170, 0.3);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .equip-info {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   min-width: 0;
 }
 
 .equip-label {
-  font-size: 0.6rem;
-  letter-spacing: 2.5px;
-  color: rgba(240, 230, 215, 0.25);
+  font-size: 0.55rem;
+  letter-spacing: 2px;
+  color: rgba(240, 230, 215, 0.22);
   font-family: 'Courier New', monospace;
   text-transform: uppercase;
   font-weight: 600;
 }
 
 .equip-name {
-  font-size: 0.7rem;
-  color: rgba(240, 230, 215, 0.35);
+  font-size: 0.65rem;
+  color: rgba(240, 230, 215, 0.3);
   font-family: 'Courier New', monospace;
   font-weight: 500;
   white-space: nowrap;
@@ -646,7 +645,7 @@ canvas {
 }
 
 .equip-slot[data-filled="true"] .equip-name {
-  color: rgba(240, 230, 215, 0.6);
+  color: rgba(240, 230, 215, 0.55);
 }
 
 #mobile-controls {
