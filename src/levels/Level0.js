@@ -320,16 +320,19 @@ export class Level0 {
   }
 
   _createLights() {
-    const ambient = new THREE.AmbientLight(0xffdd99, 0.12);
+    const ambient = new THREE.AmbientLight(0xffdd99, 0.5);
     this.object3d.add(ambient);
 
-    const backLight = new THREE.DirectionalLight(0xffdd88, 0.15);
-    backLight.position.set(0, 1, 0);
-    this.object3d.add(backLight);
+    const hemi = new THREE.HemisphereLight(0xfff0d0, 0x887755, 0.4);
+    this.object3d.add(hemi);
+
+    const dir = new THREE.DirectionalLight(0xffdd88, 0.35);
+    dir.position.set(0, 10, 0);
+    this.object3d.add(dir);
 
     const fixtureMat = _makeMat('fixture', {
       map: this.textures.fixtureDiff, roughness: 0.4, metalness: 0,
-      emissiveMap: this.textures.fixtureEmit, emissive: 0xffdd88, emissiveIntensity: 2.5,
+      emissiveMap: this.textures.fixtureEmit, emissive: 0xffe8bb, emissiveIntensity: 3.0,
     });
 
     const fGeom = new THREE.BoxGeometry(1.6, 0.05, 0.25);

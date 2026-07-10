@@ -13,17 +13,17 @@ export class GameRenderer {
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.shadowMap.enabled = false;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 0.9;
+    this.renderer.toneMappingExposure = 1.8;
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x000000);
-    this.scene.fog = new THREE.Fog(0x000000, 20, 50);
+    this.scene.background = new THREE.Color(0x1a1a1a);
+    this.scene.fog = new THREE.Fog(0xffeecc, 30, 120);
 
     this.camera = new THREE.PerspectiveCamera(
       75,
       window.innerWidth / window.innerHeight,
       0.1,
-      50
+      200
     );
     this.camera.position.set(0, 1.7, 0);
 
