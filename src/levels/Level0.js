@@ -83,7 +83,7 @@ const ITEM_SCALES = {
 };
 
 const FURNITURE_SCALES = {
-  filing_cabinet: 1.3,         // raw 0.978 → 1.27m tall
+  filing_cabinet: 0.65,        // raw 2×2×2 → 1.3m tall
 };
 
 const FURNITURE_MODEL_MAP = {
@@ -367,7 +367,8 @@ export class Level0 {
       const mats = Array.isArray(c.material) ? c.material : [c.material];
       for (const m of mats) {
         if (!m.map) {
-          m.color.setHex(0xddd0c0);
+          const h = m.color ? m.color.getHex() : 0;
+          if (h === 0xffffff || h === 0x2194f3) m.color.setHex(0xddd0c0);
           m.roughness = 0.85;
           m.metalness = 0;
         }
@@ -383,8 +384,6 @@ export class Level0 {
         if (this.grid[z][x] === 'r') cells.push({ x, z });
 
     if (cells.length === 0) return;
-
-    const cabMat = _makeMat('cabinet', { color: 0x887766, roughness: 0.7, metalness: 0.1 });
 
     for (let i = 0; i < Math.min(6, cells.length); i++) {
       const cell = cells[(i * 7 + 3) % cells.length];
