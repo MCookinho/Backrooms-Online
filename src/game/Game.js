@@ -85,6 +85,7 @@ export class Game {
     const entities = level.getThreatPositions ? level.getThreatPositions() : [];
 
     for (const ent of entities) {
+      const model = level.getThreatModel ? level.getThreatModel(ent.type) : null;
       const threat = new Threat(
         this.renderer.getScene(),
         ent.position,
@@ -94,6 +95,7 @@ export class Game {
           damage: ent.damage || 10,
           aggroRange: ent.aggroRange || 8,
           patrolRadius: ent.patrolRadius || 4,
+          model,
         }
       );
       this.threats.push(threat);

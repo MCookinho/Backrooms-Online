@@ -11,6 +11,7 @@ export class Threat {
       attackRange: config.attackRange || 1.5,
       patrolRadius: config.patrolRadius || 4,
       type: config.type || 'hound',
+      model: config.model || null,
     };
 
     this.velocity = new THREE.Vector3();
@@ -22,29 +23,60 @@ export class Threat {
     this.patrolTarget = this._randomPatrolPoint();
     this.wanderTimer = 0;
 
-    this.object3d = this._createMesh();
+    const defaultModel = this._createMesh();
+    this.object3d = this.config.model ? this._applyToModel(this.config.model) : defaultModel;
     this.object3d.position.copy(position);
     scene.add(this.object3d);
+  }
+
+  _applyToModel(model) {
+    const group = model.clone(true);
+    group.traverse((child) => {
+      if (child.isMesh) {
+        if (this.config.type === 'hound') {
+          child.material = new THREE.MeshStandardMaterial({
+            color: 0x111111,
+            roughness: 0.95,
+            metalness: 0,
+          });
+        } else if (this.config.type === 'faceling') {
+          child.material = new THREE.MeshStandardMaterial({
+            color: 0xccbbaa,
+            roughness: 0.9,
+            metalness: 0,
+          });
+        } else if (this.config.type === 'duller') {
+          child.material = new THREE.MeshStandardMaterial({
+            color: 0x665544,
+            roughness: 0.95,
+            metalness: 0,
+            transparent: true,
+            opacity: 0.85,
+          });
+        }
+      }
+    });
+    return group;
   }
 
   _createMesh() {
     const group = new THREE.Group();
 
     if (this.config.type === 'hound') {
-      const furMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.95 });
+      const mat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.95 });
       const eyeMat = new THREE.MeshStandardMaterial({ color: 0xff2200, emissive: 0xff0000, emissiveIntensity: 0.8 });
       const teethMat = new THREE.MeshStandardMaterial({ color: 0xeeddcc, roughness: 0.6 });
 
-      const body = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.45, 1.1), furMat);
+      const body = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.45, 1.1), mat);
       body.position.y = 0.55;
       body.geometry.translate(0, 0, -0.05);
       group.add(body);
 
-      const head = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.35, 0.4), furMat);
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.35, 0.4), mat);
       head.position.set(0, 0.75, -0.55);
       group.add(head);
 
-      const snout = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.12, 0.15), furMat);
+      const snout = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.12, 0.15), mat);
       snout.position.set(0, 0.65, -0.7);
       group.add(snout);
 
@@ -66,29 +98,27 @@ export class Threat {
 
       const earShape = new THREE.ConeGeometry(0.06, 0.1, 4);
       for (const ex of [-0.15, 0.15]) {
-        const ear = new THREE.Mesh(earShape, furMat);
+        const ear = new THREE.Mesh(earShape, mat);
         ear.position.set(ex, 0.92, -0.5);
         group.add(ear);
       }
 
-      const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.04, 0.2, 6), furMat);
+      const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.04, 0.2, 6), mat);
       tail.position.set(0, 0.5, 0.55);
       tail.rotation.x = 0.4;
       group.add(tail);
 
       for (const lx of [-0.25, 0.25]) {
         for (const lz of [-0.4, 0.4]) {
-          const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.06, 0.35, 6), furMat);
+          const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.06, 0.35, 6), mat);
           leg.position.set(lx, 0.18, lz);
           group.add(leg);
         }
       }
       group.scale.set(0.85, 0.85, 0.85);
-
     } else if (this.config.type === 'faceling') {
       const skinMat = new THREE.MeshStandardMaterial({ color: 0xccbbaa, roughness: 0.9 });
       const clothesMat = new THREE.MeshStandardMaterial({ color: 0x445566, roughness: 0.95 });
-      const shoeMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.95 });
 
       const body = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.65, 0.25), clothesMat);
       body.position.y = 0.85;
@@ -103,30 +133,15 @@ export class Threat {
       neck.position.set(0, 1.15, 0);
       group.add(neck);
 
-      const shoulders = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.06, 0.22), clothesMat);
-      shoulders.position.set(0, 1.1, 0);
-      group.add(shoulders);
-
-      const armMat = skinMat;
       for (const sx of [-0.3, 0.3]) {
-        const arm = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.45, 0.06), armMat);
+        const arm = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.45, 0.06), skinMat);
         arm.position.set(sx, 0.75, 0);
         group.add(arm);
-
-        const sleeve = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.15, 0.08), clothesMat);
-        sleeve.position.set(sx, 0.9, 0);
-        group.add(sleeve);
       }
 
       const legs = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.4, 0.25), clothesMat);
       legs.position.y = 0.35;
       group.add(legs);
-
-      for (const lx of [-0.1, 0.1]) {
-        const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.05, 0.12), shoeMat);
-        shoe.position.set(lx, 0.03, 0.03);
-        group.add(shoe);
-      }
 
       const hairMat = new THREE.MeshStandardMaterial({ color: 0x443322, roughness: 0.9 });
       const hair = new THREE.Mesh(new THREE.SphereGeometry(0.19, 10, 10), hairMat);
@@ -134,21 +149,10 @@ export class Threat {
       hair.scale.set(1.05, 0.15, 0.95);
       group.add(hair);
 
-      const hair2 = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 8), hairMat);
-      hair2.position.set(0, 1.45, -0.01);
-      hair2.scale.set(1.0, 0.12, 0.6);
-      group.add(hair2);
-
       group.scale.set(0.95, 0.95, 0.95);
-
     } else if (this.config.type === 'duller') {
       const skinMat = new THREE.MeshStandardMaterial({ color: 0x998877, roughness: 0.95 });
-      const clothesMat = new THREE.MeshPhysicalMaterial({
-        color: 0x554433,
-        roughness: 0.9,
-        transparent: true,
-        opacity: 0.85,
-      });
+      const clothesMat = new THREE.MeshPhysicalMaterial({ color: 0x554433, roughness: 0.9, transparent: true, opacity: 0.85 });
       const tearMat = new THREE.MeshStandardMaterial({ color: 0x443322, roughness: 1 });
 
       const body = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.55, 0.22), clothesMat);
