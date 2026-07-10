@@ -74,12 +74,12 @@ const ITEM_MODEL_MAP = {
 };
 
 const ITEM_SCALES = {
-  almond_water: 0.003,         // raw 68.6 → 0.206m tall
-  flashlight: 0.25,            // raw 0.61 → 0.153m long
-  lighter: 0.0004,             // raw 206 → 0.082m
-  medkit: 25,                  // raw 0.004 → 0.1m
-  key: 0.14,                   // raw 0.5 → 0.07m
-  note: 0.002,                 // raw 171 → 0.342m wide
+  almond_water: 0.0038,         // raw 58 → 0.22m tall
+  flashlight: 2.5,              // raw 0.06 → 0.15m long
+  lighter: 0.00047,             // raw 170 → 0.08m
+  medkit: 19,                   // raw 0.0079 → 0.15m
+  key: 0.12,                    // raw 0.5 → 0.06m
+  note: 0.0016,                 // raw 171 → 0.28m wide
 };
 
 const FURNITURE_SCALES = {
