@@ -69,12 +69,25 @@ const ITEM_PLACEMENTS = [
 
 const ITEM_MODEL_MAP = {
   almond_water: 'water_bottle.glb', flashlight: 'flashlight.glb',
-  batteries: 'battery.glb', lighter: 'lighter.glb',
+  batteries: '__procedural_battery', lighter: 'lighter.glb',
   medkit: 'firstaid.glb', key: 'key.glb', note: 'papers.glb',
 };
 
+const ITEM_SCALES = {
+  water_bottle: 0.003,         // raw 68.6 → 0.206m tall
+  flashlight: 0.25,            // raw 0.61 → 0.153m long
+  lighter: 0.0004,             // raw 206 → 0.082m
+  firstaid: 25,                // raw 0.004 → 0.1m
+  key: 0.14,                   // raw 0.5 → 0.07m
+  papers: 0.002,               // raw 171 → 0.342m wide
+};
+
+const FURNITURE_SCALES = {
+  filing_cabinet: 1.3,         // raw 0.978 → 1.27m tall
+};
+
 const FURNITURE_MODEL_MAP = {
-  filing_cabinet: 'filing_cabinet.glb', shelf: 'shelf.glb', water_cooler: 'water_cooler.glb',
+  filing_cabinet: 'filing_cabinet.glb', water_cooler: 'water_cooler.glb',
 };
 
 const _id = (() => { let i = 0; return () => i++; })();
@@ -144,19 +157,15 @@ export class Level0 {
       t.repeat.set(rx, ry);
       this.textures[key] = t;
     };
-    loadTex('carpetDiff', 'assetpack/carpet016_2k_png_color_yellowed.jpg', 6, 6);
-    loadTex('carpetNorm', 'assetpack/carpet016_2k_png_normalgl.jpg', 6, 6);
-    loadTex('carpetRough', 'assetpack/carpet016_2k_png_roughness.jpg', 6, 6);
-    loadTex('wallDiff', 'assetpack/backroom_wallpaper_texture___yellowed_loopable.jpg', 2, 2);
-    loadTex('wallNor', 'assetpack/wallpaper002a_2k_png_normalgl.jpg', 2, 2);
-    loadTex('wallRough', 'assetpack/wallpaper002a_2k_png_roughness.jpg', 2, 2);
-    loadTex('ceilDiff', 'assetpack/officeceiling003_2k_png_color.jpg', 4, 4);
-    loadTex('ceilNor', 'assetpack/officeceiling003_2k_png_normalgl.jpg', 4, 4);
-    loadTex('ceilRough', 'assetpack/officeceiling003_2k_png_metalness_officeceiling003_2k_png_roughness.jpg', 4, 4);
-    loadTex('ceilEmit', 'assetpack/officeceiling003_2k_png_emission.jpg', 4, 4);
-    loadTex('footerDiff', 'assetpack/paper001_2k_png_color.jpg', 1, 1);
-    loadTex('footerNor', 'assetpack/wood050_2k_png_normalgl.jpg', 1, 1);
-    loadTex('footerRough', 'assetpack/wood050_2k_png_roughness.jpg', 1, 1);
+    loadTex('floorDiff', 'backrooms-level-0/floor_1.png', 3, 3);
+    loadTex('floorNorm', 'backrooms-level-0/NormalMap (20)_6.png', 3, 3);
+    loadTex('floorRough', 'backrooms-level-0/nmp_0.jpeg', 3, 3);
+    loadTex('wallDiff', 'backrooms-level-0/bwa_7.jpeg', 2, 2);
+    loadTex('wallNor', 'backrooms-level-0/NormalMap (20)_6.png', 2, 2);
+    loadTex('wallRough', 'backrooms-level-0/nmp_0.jpeg', 2, 2);
+    loadTex('ceilDiff', 'backrooms-level-0/backrooms roof_4.png', 3, 3);
+    loadTex('ceilNor', 'backrooms-level-0/NormalMap (21)_3.png', 3, 3);
+    loadTex('ceilEmit', 'backrooms-level-0/remis_2.png', 3, 3);
 
     const loadModel = (key, filename) => new Promise(resolve => {
       const loader = new GLTFLoader();
@@ -170,14 +179,19 @@ export class Level0 {
 
     const modelPromises = [];
     const seen = new Set();
+
+    // Load old item models (for pickup items)
     for (const key of Object.values(ITEM_MODEL_MAP)) {
       const name = key.replace('.glb', '');
       if (!seen.has(name)) { seen.add(name); modelPromises.push(loadModel(name, key)); }
     }
+
+    // Load furniture models (filing_cabinet, water_cooler)
     for (const key of Object.values(FURNITURE_MODEL_MAP)) {
       const name = key.replace('.glb', '');
       if (!seen.has(name)) { seen.add(name); modelPromises.push(loadModel(name, key)); }
     }
+
     await Promise.all(modelPromises);
   }
 
@@ -192,6 +206,7 @@ export class Level0 {
   }
 
   _buildLevel() {
+    this._buildUnderFloor();
     this._buildFloor();
     this._buildCeiling();
     this._buildWalls();
@@ -205,10 +220,20 @@ export class Level0 {
     return x >= 0 && x < GW && z >= 0 && z < GH && this.grid[z][x] !== ' ';
   }
 
+  _buildUnderFloor() {
+    const mat = _makeMat('underfloor', { color: 0x222222, roughness: 1, metalness: 0 });
+    const geom = new THREE.PlaneGeometry(GW * TILE, GH * TILE);
+    const mesh = new THREE.Mesh(geom, mat);
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.position.set(GW * TILE / 2, -0.1, GH * TILE / 2);
+    mesh.renderOrder = -1;
+    this.object3d.add(mesh);
+  }
+
   _buildFloor() {
     const mat = _makeMat('floor', {
-      map: this.textures.carpetDiff, normalMap: this.textures.carpetNorm,
-      roughnessMap: this.textures.carpetRough,
+      map: this.textures.floorDiff, normalMap: this.textures.floorNorm,
+      roughnessMap: this.textures.floorRough,
     });
     const geom = new THREE.PlaneGeometry(TILE, TILE);
     const count = this._walkableTiles.length;
@@ -229,7 +254,7 @@ export class Level0 {
   _buildCeiling() {
     const mat = _makeMat('ceiling', {
       map: this.textures.ceilDiff, normalMap: this.textures.ceilNor,
-      roughnessMap: this.textures.ceilRough, roughness: 0.95, color: 0xeee8e0,
+      roughness: 0.95, color: 0xeee8e0,
     });
     const geom = new THREE.PlaneGeometry(TILE, TILE);
     const count = this._walkableTiles.length;
@@ -252,8 +277,7 @@ export class Level0 {
       roughnessMap: this.textures.wallRough,
     });
     const footerMat = _makeMat('footer', {
-      map: this.textures.footerDiff, normalMap: this.textures.footerNor,
-      roughnessMap: this.textures.footerRough, roughness: 0.8, color: 0x887755,
+      map: this.textures.wallDiff, roughness: 0.8, color: 0x887755,
     });
 
     const wallGeomsX = [];
@@ -296,10 +320,10 @@ export class Level0 {
   }
 
   _createLights() {
-    const ambient = new THREE.AmbientLight(0xffddbb, 0.6);
+    const ambient = new THREE.AmbientLight(0xffddbb, 0.3);
     this.object3d.add(ambient);
 
-    const hemi = new THREE.HemisphereLight(0xffeedd, 0x443322, 1.0);
+    const hemi = new THREE.HemisphereLight(0xffeedd, 0x443322, 0.6);
     this.object3d.add(hemi);
 
     const dir = new THREE.DirectionalLight(0xffddaa, 0.4);
@@ -308,8 +332,8 @@ export class Level0 {
 
     const fixtureMat = _makeMat('fixture', {
       map: this.textures.ceilDiff, normalMap: this.textures.ceilNor,
-      roughnessMap: this.textures.ceilRough, roughness: 0.7, metalness: 0.1,
-      emissiveMap: this.textures.ceilEmit, emissive: 0xffddaa, emissiveIntensity: 0.8,
+      roughness: 0.7, metalness: 0.1,
+      emissiveMap: this.textures.ceilEmit, emissive: 0xfff0d0, emissiveIntensity: 1.2,
     });
 
     const fGeom = new THREE.BoxGeometry(1.6, 0.05, 0.25);
@@ -338,7 +362,16 @@ export class Level0 {
   _cloneModel(key) {
     const src = this.models[key];
     if (!src || src.children.length === 0) return new THREE.Group();
-    return src.clone(true);
+    const clone = src.clone(true);
+    clone.traverse(c => {
+      if (!c.isMesh) return;
+      const mats = Array.isArray(c.material) ? c.material : [c.material];
+      for (const m of mats) {
+        if (m.color && m.color.getHex() === 0x2194f3) m.color.setHex(0xccbbaa);
+        if (!m.map) { m.roughness = 0.85; m.metalness = 0; }
+      }
+    });
+    return clone;
   }
 
   _createProps() {
@@ -349,6 +382,8 @@ export class Level0 {
 
     if (cells.length === 0) return;
 
+    const cabMat = _makeMat('cabinet', { color: 0x887766, roughness: 0.7, metalness: 0.1 });
+
     for (let i = 0; i < Math.min(6, cells.length); i++) {
       const cell = cells[(i * 7 + 3) % cells.length];
       const cx = cell.x * TILE + TILE / 2 + ((i % 3) - 1) * 0.8;
@@ -356,27 +391,40 @@ export class Level0 {
       const cab = this._cloneModel('filing_cabinet');
       cab.position.set(cx, 0, cz);
       cab.rotation.y = i * 1.2;
-      cab.scale.setScalar(0.8);
+      cab.scale.setScalar(FURNITURE_SCALES.filing_cabinet);
       this.object3d.add(cab);
     }
+
+    // Procedural shelves (shelf.glb was corrupted)
+    const shelfMat = _makeMat('shelf', { color: 0x9a8c7a, roughness: 0.6, metalness: 0.05 });
     for (let i = 0; i < Math.min(6, cells.length); i++) {
       const cell = cells[(i * 11 + 5) % cells.length];
       const cx = cell.x * TILE + TILE / 2 + ((i * 3) % 3 - 1) * 0.8;
       const cz = cell.z * TILE + TILE / 2 + ((i + 5) % 3 - 1) * 0.8;
-      const shelf = this._cloneModel('shelf');
-      shelf.position.set(cx, 0, cz);
-      shelf.rotation.y = i * 0.9;
-      shelf.scale.setScalar(1.5);
-      this.object3d.add(shelf);
+      const group = new THREE.Group();
+      for (const sx of [-0.4, 0.4]) {
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.03, 1.6, 0.03), shelfMat);
+        leg.position.set(sx, 0.8, 0);
+        group.add(leg);
+      }
+      for (let j = 0; j < 4; j++) {
+        const board = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.03, 0.4), shelfMat);
+        board.position.set(0, j * 0.4 + 0.2, 0);
+        group.add(board);
+      }
+      group.position.set(cx, 0, cz);
+      group.rotation.y = i * 0.9;
+      this.object3d.add(group);
     }
+
     for (let i = 0; i < Math.min(3, cells.length); i++) {
       const cell = cells[(i * 13 + 7) % cells.length];
       const cx = cell.x * TILE + TILE / 2 + ((i * 2) % 3 - 1) * 0.8;
-      const cz = cell.z * TILE + TILE / 2 + ((i * 3 + 2) % 3 - 1) * 0.8;
+      const cz = cell.z * TILE + TILE / 2 + ((i + 5) % 3 - 1) * 0.8;
       const cooler = this._cloneModel('water_cooler');
       cooler.position.set(cx, 0, cz);
-      cooler.rotation.y = i * 1.5;
-      cooler.scale.setScalar(3);
+      cooler.rotation.set(-Math.PI / 2, i * 1.5, 0);
+      cooler.scale.setScalar(0.1);
       this.object3d.add(cooler);
     }
   }
@@ -384,7 +432,17 @@ export class Level0 {
   _spawnItem(type, x, z) {
     const modelKey = ITEM_MODEL_MAP[type];
     if (!modelKey) return;
-    const mesh = this._cloneModel(modelKey.replace('.glb', ''));
+
+    let mesh;
+    if (modelKey === '__procedural_battery') {
+      const mat = _makeMat('battery', { color: 0xcc3333, metalness: 0.4, roughness: 0.3 });
+      mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.03, 0.08, 8), mat);
+    } else {
+      mesh = this._cloneModel(modelKey.replace('.glb', ''));
+      const s = ITEM_SCALES[type];
+      if (s) mesh.scale.setScalar(s);
+    }
+
     mesh.position.set(x, 0.05, z);
     this.object3d.add(mesh);
     this.interactables.push({ mesh, type, position: new THREE.Vector3(x, 0.1, z) });
@@ -398,7 +456,7 @@ export class Level0 {
   _createExit() {
     const px = 75 * TILE + TILE / 2, pz = 56 * TILE + TILE / 2;
     const doorMat = _makeMat('door', { map: this.textures.wallDiff });
-    const frameMat = _makeMat('frame', { map: this.textures.footerDiff, roughness: 0.6, metalness: 0.1, color: 0x887755 });
+    const frameMat = _makeMat('frame', { map: this.textures.wallDiff, roughness: 0.6, metalness: 0.1, color: 0x887755 });
     const barMat = _makeMat('bar', { color: 0x888888, metalness: 0.8, roughness: 0.2 });
     const signMat = _makeMat('sign', { map: this.textures.ceilEmit, color: 0xcc3333, emissive: 0xcc2222, emissiveIntensity: 0.6, roughness: 0.3 });
     const signGlowMat = _makeMat('signGlow', { color: 0xffeedd, emissive: 0xffaa66, emissiveIntensity: 0.3, transparent: true, opacity: 0.4 });
@@ -454,7 +512,7 @@ function mergeGeoms(geoms) {
   const pos = new Float32Array(totalVerts * 3);
   const nrm = new Float32Array(totalVerts * 3);
   const uv = new Float32Array(totalVerts * 2);
-  const idx = new Uint16Array(totalIdx);
+  const idx = new Uint32Array(totalIdx);
   let vo = 0, io = 0;
   for (const g of geoms) {
     const p = g.getAttribute('position');

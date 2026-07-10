@@ -39,6 +39,7 @@ export class Game {
     this.loadingScreen = document.getElementById('loading-screen');
     this.loadingBar = document.getElementById('loading-bar');
     this.loadingText = document.getElementById('loading-text');
+    this.loadingHum = document.getElementById('loading-hum');
     this.vhsTracking = document.getElementById('vhs-tracking');
 
     this._setupEventListeners();
@@ -48,30 +49,37 @@ export class Game {
     this.audio.init();
 
     try {
-      this._setLoadingProgress(10, 'Establishing connection...');
+      this._setLoadingProgress(8, 'SIGNAL ACQUIRING...');
+      await new Promise(r => setTimeout(r, 300));
+
+      this._setLoadingProgress(15, 'DECODING TAPE 1/6');
       await new Promise(r => setTimeout(r, 200));
 
-      this._setLoadingProgress(25, 'Loading textures...');
+      this._setLoadingProgress(30, 'MAPPING WALLS');
       this.levelManager.registerLevel(0, new Level0());
       await this.levelManager.loadLevel(0);
       this.interactables = this.levelManager.getCurrentLevel().getInteractables();
       const sp = this.levelManager.getCurrentLevel().spawnPoint;
       if (sp) this.player.respawn(sp);
 
-      this._setLoadingProgress(70, 'Compiling geometry...');
+      this._setLoadingProgress(55, 'STITCHING TEXTURES');
+      await new Promise(r => setTimeout(r, 150));
+
+      this._setLoadingProgress(70, 'COMPILING GEOMETRY');
       this._spawnThreats();
     } catch (e) {
       console.warn('Level 0 failed to load:', e);
     }
 
-    this._setLoadingProgress(85, 'Stabilizing reality...');
-    await new Promise(r => setTimeout(r, 200));
+    this._setLoadingProgress(82, 'STABILIZING REALITY');
+    await new Promise(r => setTimeout(r, 250));
     this.running = true;
     this.audio.playAmbience('level0');
 
-    this._setLoadingProgress(95, 'NOCLIP initiated');
+    this._setLoadingProgress(92, 'NOCLIP INITIATED');
     if (this.vhsTracking) this.vhsTracking.classList.add('active');
-    await new Promise(r => setTimeout(r, 500));
+    if (this.loadingHum) this.loadingHum.textContent = '══ ══ ══ ══';
+    await new Promise(r => setTimeout(r, 600));
 
     this._setLoadingProgress(100, '▮');
     await new Promise(r => setTimeout(r, 400));
@@ -111,6 +119,10 @@ export class Game {
   _setLoadingProgress(pct, text) {
     if (this.loadingBar) this.loadingBar.style.width = `${pct}%`;
     if (this.loadingText) this.loadingText.textContent = text;
+    if (this.loadingHum) {
+      const n = Math.max(1, Math.min(6, Math.floor(pct / 16) + 1));
+      this.loadingHum.textContent = Array(n).fill('══').join(' ') + Array(Math.max(0, 6 - n)).fill('  ').join(' ');
+    }
   }
 
   _hideLoadingScreen() {
