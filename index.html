@@ -40,34 +40,43 @@
     <div id="crosshair">+</div>
     <div id="interact-prompt"></div>
     <div id="inventory-panel" class="hidden">
-      <div id="inventory-frame">
-        <div id="inventory-header">
-          <span id="inventory-title">▓ INVENTORY ▓</span>
+      <div id="inv-frame">
+        <div id="inv-header">
+          <span id="inv-title">■ INVENTORY ■</span>
         </div>
-        <div id="inventory-body">
-          <div id="inventory-grid"></div>
-          <div id="inventory-equipment">
-            <div class="equip-slot" data-slot="head">
-              <span class="equip-label">HEAD</span>
-              <div class="equip-icon">◌</div>
-              <span class="equip-item">—</span>
+        <div id="inv-body">
+          <div id="inv-left">
+            <div id="inventory-grid"></div>
+            <div id="inv-footer">
+              <span id="inventory-info">⌂ CLICK TO USE</span>
             </div>
-            <div class="equip-slot" data-slot="torso">
-              <span class="equip-label">TORSO</span>
-              <div class="equip-icon">◌</div>
-              <span class="equip-item">—</span>
-            </div>
-            <div class="equip-slot" data-slot="legs">
-              <span class="equip-label">LEGS</span>
-              <div class="equip-icon">◌</div>
-              <span class="equip-item">—</span>
+          </div>
+          <div id="inv-right">
+            <div id="inv-equipment">
+              <div class="equip-slot" data-slot="head">
+                <span class="equip-icon equip-head">◉</span>
+                <div class="equip-info">
+                  <span class="equip-label">HEAD</span>
+                  <span class="equip-name">—</span>
+                </div>
+              </div>
+              <div class="equip-slot" data-slot="torso">
+                <span class="equip-icon equip-torso">◈</span>
+                <div class="equip-info">
+                  <span class="equip-label">TORSO</span>
+                  <span class="equip-name">—</span>
+                </div>
+              </div>
+              <div class="equip-slot" data-slot="legs">
+                <span class="equip-icon equip-legs">◇</span>
+                <div class="equip-info">
+                  <span class="equip-label">LEGS</span>
+                  <span class="equip-name">—</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-        <div id="inventory-footer">
-          <span id="inventory-info">▸ CLICK TO USE</span>
-        </div>
-        <div id="inv-scanlines"></div>
       </div>
     </div>
     <div id="mobile-controls" class="hidden">

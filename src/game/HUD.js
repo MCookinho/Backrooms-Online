@@ -66,13 +66,14 @@ export class HUD {
         const slot = es.dataset.slot;
         const item = equipment[slot];
         const icon = es.querySelector('.equip-icon');
-        const name = es.querySelector('.equip-item');
+        const name = es.querySelector('.equip-name');
         if (item) {
           icon.textContent = item.icon || '◆';
           name.textContent = item.name;
+          es.dataset.filled = 'true';
         } else {
-          icon.textContent = '◌';
           name.textContent = '—';
+          delete es.dataset.filled;
         }
       }
     }
