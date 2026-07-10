@@ -1,6 +1,12 @@
 const SOUND_URLS = {
-  footstep: 'https://cdn.freesound.org/previews/474/474051_3248005-lq.mp3',
+  footstep: 'https://cdn.freesound.org/previews/842/842188_13307919-lq.mp3',
+  footstep_run: 'https://cdn.freesound.org/previews/842/842188_13307919-lq.mp3',
   flashlight: 'https://cdn.freesound.org/previews/502/502506_4921277-lq.mp3',
+  jump: 'https://cdn.freesound.org/previews/464/464527_7890039-lq.mp3',
+  land: 'https://cdn.freesound.org/previews/422/422753_6616210-lq.mp3',
+  pickup: 'https://cdn.freesound.org/previews/822/822564_71257-lq.mp3',
+  hurt: 'https://cdn.freesound.org/previews/842/842186_13307919-lq.mp3',
+  door: 'https://cdn.freesound.org/previews/842/842186_13307919-lq.mp3',
   ambience: 'https://cdn.freesound.org/previews/638/638895_11418394-lq.mp3',
 };
 
@@ -13,14 +19,13 @@ export class AudioManager {
     this.sfxGain = null;
     this.ambienceGain = null;
     this.initialized = false;
-    this._footstepStep = 0;
   }
 
   init() {
     try {
       this.ctx = new (window.AudioContext || window.webkitAudioContext)();
       this.masterGain = this.ctx.createGain();
-      this.masterGain.gain.value = 0.5;
+      this.masterGain.gain.value = 0.35;
       this.masterGain.connect(this.ctx.destination);
 
       this.sfxGain = this.ctx.createGain();
@@ -28,13 +33,13 @@ export class AudioManager {
       this.sfxGain.connect(this.masterGain);
 
       this.ambienceGain = this.ctx.createGain();
-      this.ambienceGain.gain.value = 0.4;
+      this.ambienceGain.gain.value = 0.35;
       this.ambienceGain.connect(this.masterGain);
 
       this.initialized = true;
       this._loadSounds();
     } catch (e) {
-      console.warn('Audio not available:', e);
+      console.warn('AudioManager: Web Audio not available');
     }
   }
 
@@ -46,7 +51,7 @@ export class AudioManager {
         const buf = await resp.arrayBuffer();
         this.buffers[name] = await this.ctx.decodeAudioData(buf);
       } catch (e) {
-        console.warn(`Audio load failed for "${name}":`, e);
+        console.warn(`AudioManager: failed to load "${name}"`);
       }
     }
   }
@@ -59,149 +64,92 @@ export class AudioManager {
     if (!this.initialized) return;
     this._ensureResumed();
 
+    const buf = this.buffers[name];
+    if (!buf) return;
+
     switch (name) {
       case 'footstep':
-        this._playFootstep();
+        this._playBuffer('footstep', 0.9 + Math.random() * 0.2, 0.6);
         break;
       case 'footstep_run':
-        this._playFootstep(1.2);
+        this._playBuffer('footstep_run', 1.1 + Math.random() * 0.2, 0.5);
         break;
       case 'flashlight':
-        this._playFromBuffer('flashlight');
+        this._playBuffer('flashlight', 1, 0.8);
         break;
       case 'jump':
-        this._synthJump();
+        this._playBuffer('jump', 1, 0.6);
         break;
       case 'land':
-        this._playFootstep(0.8);
+        this._playBuffer('land', 0.8 + Math.random() * 0.3, 0.5);
         break;
       case 'pickup':
-        this._synthTone(800, 0.1, 'sine', 0.3);
+        this._playBuffer('pickup', 1, 0.7);
         break;
       case 'hurt':
-        this._synthTone(200, 0.2, 'sawtooth', 0.4);
+        this._playHurt();
         break;
       case 'door':
-        this._synthNoise(0.15, 0.3);
+        this._playDoor();
         break;
     }
   }
 
-  _playFootstep(pitchMul = 1) {
-    const buf = this.buffers.footstep;
-    if (buf) {
-      const source = this.ctx.createBufferSource();
-      source.buffer = buf;
-      const dur = buf.duration;
-      const start = Math.random() * (dur - 0.5);
-      source.start(0, start, 0.25);
-      source.playbackRate.value = 0.9 + Math.random() * 0.2 * pitchMul;
-
-      const gain = this.ctx.createGain();
-      const now = this.ctx.currentTime;
-      gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(0.8, now + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-      source.connect(gain);
-      gain.connect(this.sfxGain);
-    } else {
-      this._synthFootstep();
-    }
-  }
-
-  _playFromBuffer(name) {
+  _playBuffer(name, pitch, vol) {
     const buf = this.buffers[name];
     if (!buf) return;
     const source = this.ctx.createBufferSource();
     source.buffer = buf;
+    source.playbackRate.value = pitch;
     const gain = this.ctx.createGain();
     const now = this.ctx.currentTime;
-    gain.gain.setValueAtTime(0.8, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + buf.duration);
+    gain.gain.setValueAtTime(vol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + buf.duration / pitch);
     source.connect(gain);
     gain.connect(this.sfxGain);
     source.start(0);
   }
 
-  _synthFootstep() {
-    const now = this.ctx.currentTime;
-
-    const noise = this.ctx.createBufferSource();
-    const bufSize = this.ctx.sampleRate * 0.12;
-    const buf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * 0.4;
-    noise.buffer = buf;
-
-    const lp = this.ctx.createBiquadFilter();
-    lp.type = 'lowpass';
-    lp.frequency.value = 200 + Math.random() * 300;
-
-    const ng = this.ctx.createGain();
-    ng.gain.setValueAtTime(0.3, now);
-    ng.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-
-    const thump = this.ctx.createOscillator();
-    thump.type = 'sine';
-    thump.frequency.value = 80 + Math.random() * 40;
-    const tg = this.ctx.createGain();
-    tg.gain.setValueAtTime(0.4, now);
-    tg.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
-
-    noise.connect(lp);
-    lp.connect(ng);
-    ng.connect(this.sfxGain);
-    thump.connect(tg);
-    tg.connect(this.sfxGain);
-    noise.start(now);
-    noise.stop(now + 0.12);
-    thump.start(now);
-    thump.stop(now + 0.07);
-  }
-
-  _synthJump() {
-    const now = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(300, now);
-    osc.frequency.exponentialRampToValueAtTime(800, now + 0.12);
-    const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(0.15, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-    osc.connect(gain);
-    gain.connect(this.sfxGain);
-    osc.start(now);
-    osc.stop(now + 0.15);
-  }
-
-  _synthTone(freq, dur, type, vol) {
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = type;
-    osc.frequency.value = freq;
-    const now = this.ctx.currentTime;
-    gain.gain.setValueAtTime(vol, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
-    osc.connect(gain);
-    gain.connect(this.sfxGain);
-    osc.start(now);
-    osc.stop(now + dur);
-  }
-
-  _synthNoise(dur, vol) {
-    const bufSize = this.ctx.sampleRate * dur;
-    const buf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * 0.5;
+  _playHurt() {
+    const buf = this.buffers.hurt;
+    if (!buf) return;
     const source = this.ctx.createBufferSource();
     source.buffer = buf;
+    source.playbackRate.value = 0.4;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 300;
+
     const gain = this.ctx.createGain();
     const now = this.ctx.currentTime;
-    gain.gain.setValueAtTime(vol, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
-    source.connect(gain);
+    gain.gain.setValueAtTime(0.8, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    source.connect(filter);
+    filter.connect(gain);
     gain.connect(this.sfxGain);
-    source.start(now);
+    source.start(0);
+  }
+
+  _playDoor() {
+    const buf = this.buffers.door;
+    if (!buf) return;
+    const source = this.ctx.createBufferSource();
+    source.buffer = buf;
+    source.playbackRate.value = 0.6;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 500;
+
+    const gain = this.ctx.createGain();
+    const now = this.ctx.currentTime;
+    gain.gain.setValueAtTime(0.6, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfxGain);
+    source.start(0);
   }
 
   playAmbience(name) {
@@ -209,50 +157,14 @@ export class AudioManager {
     this._ensureResumed();
     if (this.ambienceNodes[name]) return;
 
-    if (name === 'level0') {
-      const buf = this.buffers.ambience;
-      if (buf) {
-        const source = this.ctx.createBufferSource();
-        source.buffer = buf;
-        source.loop = true;
-        source.connect(this.ambienceGain);
-        source.start(0);
-        this.ambienceNodes[name] = { source };
-      } else {
-        this._createSynthAmbience(name);
-      }
+    if (name === 'level0' && this.buffers.ambience) {
+      const source = this.ctx.createBufferSource();
+      source.buffer = this.buffers.ambience;
+      source.loop = true;
+      source.connect(this.ambienceGain);
+      source.start(0);
+      this.ambienceNodes[name] = { source };
     }
-  }
-
-  _createSynthAmbience(name) {
-    const dur = 2;
-    const bufSize = this.ctx.sampleRate * dur;
-    const buf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < bufSize; i++) {
-      const t = i / this.ctx.sampleRate;
-      const hum = Math.sin(2 * Math.PI * 60 * t) * 0.3;
-      const buzz = Math.sin(2 * Math.PI * 120 * t) * 0.15;
-      const flicker = Math.sin(2 * Math.PI * 3 * t) * 0.5 + 0.5;
-      data[i] = (hum + buzz) * (0.3 + flicker * 0.2) * 0.3;
-    }
-    const source = this.ctx.createBufferSource();
-    source.buffer = buf;
-    source.loop = true;
-    const filter = this.ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.value = 400;
-    const lfo = this.ctx.createOscillator();
-    lfo.frequency.value = 3;
-    const lfoGain = this.ctx.createGain();
-    lfoGain.gain.value = 20;
-    lfo.connect(lfoGain);
-    lfoGain.connect(filter.frequency);
-    source.connect(filter);
-    filter.connect(this.ambienceGain);
-    source.start(0);
-    lfo.start(0);
-    this.ambienceNodes[name] = { source, filter, lfo };
   }
 
   stopAmbience(name) {
