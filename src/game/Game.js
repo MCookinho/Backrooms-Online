@@ -36,26 +36,38 @@ export class Game {
 
     this.mobileControls = document.getElementById('mobile-controls');
     this.inventoryPanel = document.getElementById('inventory-panel');
+    this.loadingScreen = document.getElementById('loading-screen');
+    this.loadingBar = document.getElementById('loading-bar');
+    this.loadingText = document.getElementById('loading-text');
 
     this._setupEventListeners();
   }
 
   async init() {
+    this._setLoadingProgress(5, 'Waking up...');
     this.audio.init();
 
-    const scene = this.renderer.getScene();
+    this._setLoadingProgress(15, 'Generating rooms...');
 
     try {
+      this._setLoadingProgress(25, 'Loading textures...');
       this.levelManager.registerLevel(0, new Level0());
       await this.levelManager.loadLevel(0);
       this.interactables = this.levelManager.getCurrentLevel().getInteractables();
+
+      this._setLoadingProgress(70, 'Spawning entities...');
       this._spawnThreats();
     } catch (e) {
       console.warn('Level 0 failed to load:', e);
     }
 
+    this._setLoadingProgress(85, 'Calibrating reality...');
     this.running = true;
     this.audio.playAmbience('level0');
+
+    this._setLoadingProgress(100, 'Entering Level 0...');
+    await new Promise(r => setTimeout(r, 400));
+    this._hideLoadingScreen();
 
     if (this.input.isMobileDevice()) {
       this.hud.showMobileControls();
@@ -84,6 +96,20 @@ export class Game {
         }
       );
       this.threats.push(threat);
+    }
+  }
+
+  _setLoadingProgress(pct, text) {
+    if (this.loadingBar) this.loadingBar.style.width = `${pct}%`;
+    if (this.loadingText) this.loadingText.textContent = text;
+  }
+
+  _hideLoadingScreen() {
+    if (this.loadingScreen) {
+      this.loadingScreen.classList.add('fade-out');
+      setTimeout(() => {
+        this.loadingScreen.style.display = 'none';
+      }, 800);
     }
   }
 

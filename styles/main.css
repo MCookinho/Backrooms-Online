@@ -17,6 +17,88 @@ canvas {
   display: block;
 }
 
+#loading-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: #0a0a08;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.8s ease;
+}
+
+#loading-screen.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loading-content {
+  text-align: center;
+  position: relative;
+  z-index: 2;
+}
+
+.loading-content h1 {
+  font-size: 2.5rem;
+  color: #ccb87a;
+  text-shadow: 0 0 30px rgba(204, 184, 122, 0.2);
+  letter-spacing: 6px;
+  margin-bottom: 0.5rem;
+}
+
+.loading-subtitle {
+  font-size: 0.9rem;
+  color: #665533;
+  margin-bottom: 2rem;
+  letter-spacing: 2px;
+}
+
+.loading-bar-container {
+  width: 280px;
+  height: 4px;
+  background: rgba(204, 184, 122, 0.1);
+  border: 1px solid rgba(204, 184, 122, 0.2);
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.loading-bar {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, #887744, #ccb87a, #887744);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  transition: width 0.3s ease;
+}
+
+@keyframes shimmer {
+  0%, 100% { background-position: -200% 0; }
+  50% { background-position: 200% 0; }
+}
+
+.loading-text {
+  font-size: 0.75rem;
+  color: #554433;
+  margin-top: 1rem;
+  letter-spacing: 1px;
+}
+
+.loading-flicker {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.8) 100%);
+  pointer-events: none;
+  z-index: 1;
+  animation: flicker 0.15s ease-in-out infinite alternate;
+  opacity: 0.03;
+}
+
+@keyframes flicker {
+  0% { opacity: 0.02; }
+  100% { opacity: 0.06; }
+}
+
 #controls-hint {
   position: fixed;
   bottom: 90px;
