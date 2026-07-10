@@ -74,12 +74,12 @@ const ITEM_MODEL_MAP = {
 };
 
 const ITEM_SCALES = {
-  water_bottle: 0.003,         // raw 68.6 → 0.206m tall
+  almond_water: 0.003,         // raw 68.6 → 0.206m tall
   flashlight: 0.25,            // raw 0.61 → 0.153m long
   lighter: 0.0004,             // raw 206 → 0.082m
-  firstaid: 25,                // raw 0.004 → 0.1m
+  medkit: 25,                  // raw 0.004 → 0.1m
   key: 0.14,                   // raw 0.5 → 0.07m
-  papers: 0.002,               // raw 171 → 0.342m wide
+  note: 0.002,                 // raw 171 → 0.342m wide
 };
 
 const FURNITURE_SCALES = {
@@ -320,20 +320,17 @@ export class Level0 {
   }
 
   _createLights() {
-    const ambient = new THREE.AmbientLight(0xffddbb, 0.3);
+    const ambient = new THREE.AmbientLight(0xffdd99, 0.12);
     this.object3d.add(ambient);
 
-    const hemi = new THREE.HemisphereLight(0xffeedd, 0x443322, 0.6);
-    this.object3d.add(hemi);
-
-    const dir = new THREE.DirectionalLight(0xffddaa, 0.4);
-    dir.position.set(10, 20, 10);
-    this.object3d.add(dir);
+    const backLight = new THREE.DirectionalLight(0xffdd88, 0.15);
+    backLight.position.set(0, 1, 0);
+    this.object3d.add(backLight);
 
     const fixtureMat = _makeMat('fixture', {
       map: this.textures.ceilDiff, normalMap: this.textures.ceilNor,
       roughness: 0.7, metalness: 0.1,
-      emissiveMap: this.textures.ceilEmit, emissive: 0xfff0d0, emissiveIntensity: 1.2,
+      emissiveMap: this.textures.ceilEmit, emissive: 0xffdd88, emissiveIntensity: 2.5,
     });
 
     const fGeom = new THREE.BoxGeometry(1.6, 0.05, 0.25);
@@ -367,8 +364,11 @@ export class Level0 {
       if (!c.isMesh) return;
       const mats = Array.isArray(c.material) ? c.material : [c.material];
       for (const m of mats) {
-        if (m.color && m.color.getHex() === 0x2194f3) m.color.setHex(0xccbbaa);
-        if (!m.map) { m.roughness = 0.85; m.metalness = 0; }
+        if (!m.map) {
+          m.color.setHex(0xddd0c0);
+          m.roughness = 0.85;
+          m.metalness = 0;
+        }
       }
     });
     return clone;
