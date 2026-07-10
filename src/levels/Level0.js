@@ -699,19 +699,31 @@ export class Level0 {
           const faceX = (nx === x * TILE) ? nx + WALL_T / 2 + 0.003 : nx - WALL_T / 2 - 0.003;
           outletGroup.position.set(
             wallDir === 'z' ? decoX : faceX,
-            h + 0.1,
+            h + 0.14,
             wallDir === 'z' ? faceZ : decoZ
           );
 
-          const outletMat = _makeMat('outlet', { color: 0xccc8c0, roughness: 0.4, metalness: 0.1 });
-          const outlet = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.055, 0.006), outletMat);
-          outletGroup.add(outlet);
+          const plateMat = _makeMat('outlet', { color: 0xf0ece4, roughness: 0.6, metalness: 0 });
+          const plate = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.068, 0.004), plateMat);
+          outletGroup.add(plate);
 
-          const holeMat = _makeMat('outletHole', { color: 0x332e28, roughness: 0.8 });
-          for (const oh of [-0.012, 0.012]) {
-            const hole = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.014, 0.007), holeMat);
-            hole.position.set(oh, 0, 0.001);
-            outletGroup.add(hole);
+          const slotMat = _makeMat('outletSlot', { color: 0x2a2520, roughness: 0.9 });
+          for (const sx of [-0.011, 0.011]) {
+            const slot = new THREE.Mesh(new THREE.BoxGeometry(0.003, 0.020, 0.006), slotMat);
+            slot.position.set(sx, 0.006, 0.001);
+            outletGroup.add(slot);
+          }
+
+          const gndMat = _makeMat('outletGround', { color: 0x2a2520, roughness: 0.9 });
+          const gnd = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.004, 0.006), gndMat);
+          gnd.position.set(0, -0.010, 0.001);
+          outletGroup.add(gnd);
+
+          const screwMat = _makeMat('outletScrew', { color: 0xbbb8b0, roughness: 0.2, metalness: 0.3 });
+          for (const sy of [-0.028, 0.028]) {
+            const screw = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.004, 0.005), screwMat);
+            screw.position.set(0, sy, 0.001);
+            outletGroup.add(screw);
           }
 
           if (wallDir === 'x') outletGroup.rotation.y = Math.PI / 2;
@@ -730,6 +742,7 @@ export class Level0 {
           const portrait = rng() < 0.5;
           const fw = portrait ? 0.12 + rng() * 0.06 : 0.16 + rng() * 0.12;
           const fh = portrait ? 0.16 + rng() * 0.10 : 0.10 + rng() * 0.06;
+          const borderW = Math.max(0.015, fw * 0.10);
           const fy = h + 0.5 + rng() * (wallH - 0.8);
           const frameGroup = new THREE.Group();
           const fFaceZ = (nz === z * TILE) ? nz + WALL_T / 2 + 0.003 : nz - WALL_T / 2 - 0.003;
@@ -740,8 +753,20 @@ export class Level0 {
             wallDir === 'z' ? fFaceZ : decoZ
           );
 
-          const frame = new THREE.Mesh(new THREE.BoxGeometry(fw, fh, 0.008), frameMat);
-          frameGroup.add(frame);
+          const hw = fw / 2, hh = fh / 2, bw = borderW;
+          const openW = fw - bw * 2, openH = fh - bw * 2;
+          const fd = 0.008;
+          const framePieces = [
+            [0, hh - bw / 2, fw, bw],
+            [0, -(hh - bw / 2), fw, bw],
+            [-(hw - bw / 2), 0, bw, openH],
+            [hw - bw / 2, 0, bw, openH],
+          ];
+          for (const [fx, fy, fw2, fh2] of framePieces) {
+            const piece = new THREE.Mesh(new THREE.BoxGeometry(fw2, fh2, fd), frameMat);
+            piece.position.set(fx, fy, 0);
+            frameGroup.add(piece);
+          }
 
           const innerColors = [
             0xf5f0e8, 0xe8e0d0, 0xd8d0c0, 0xf0ebe0, 0xe0d8cc,
@@ -749,8 +774,8 @@ export class Level0 {
           ];
           const ic = innerColors[Math.floor(rng() * innerColors.length)];
           const innerMat = _makeMat('frameInner', { color: ic, roughness: 0.6 });
-          const inner = new THREE.Mesh(new THREE.BoxGeometry(fw * 0.72, fh * 0.72, 0.009), innerMat);
-          inner.position.z = 0.001;
+          const inner = new THREE.Mesh(new THREE.BoxGeometry(openW, openH, fd * 0.6), innerMat);
+          inner.position.z = -0.001;
           frameGroup.add(inner);
 
           if (rng() < 0.25) {
@@ -758,9 +783,9 @@ export class Level0 {
               color: innerColors[Math.floor(rng() * innerColors.length)],
               roughness: 0.5,
             });
-            const aw = fw * 0.25, ah = fh * 0.15;
-            const accent = new THREE.Mesh(new THREE.BoxGeometry(aw, ah, 0.010), accentMat);
-            accent.position.z = 0.002;
+            const aw = openW * 0.4, ah = openH * 0.2;
+            const accent = new THREE.Mesh(new THREE.BoxGeometry(aw, ah, fd * 0.7), accentMat);
+            accent.position.z = 0.001;
             frameGroup.add(accent);
           }
 
