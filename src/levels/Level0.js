@@ -46,7 +46,7 @@ const ITEM_SCALES = {
   almond_water: 0.0056,
   flashlight: 1,
   lighter: 0.00136,
-  medkit: 25,
+  medkit: 0.13,
   key: 1,
   note: 0.00175,
 };
