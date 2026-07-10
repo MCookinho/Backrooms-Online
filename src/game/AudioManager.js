@@ -1,6 +1,8 @@
 const SOUND_URLS = {
-  footstep: 'https://cdn.freesound.org/previews/842/842188_13307919-lq.mp3',
-  footstep_run: 'https://cdn.freesound.org/previews/842/842188_13307919-lq.mp3',
+  footstep_0: 'https://cdn.freesound.org/previews/843/843634_14469752-lq.mp3',
+  footstep_1: 'https://cdn.freesound.org/previews/843/843635_14469752-lq.mp3',
+  footstep_2: 'https://cdn.freesound.org/previews/843/843636_14469752-lq.mp3',
+  footstep_3: 'https://cdn.freesound.org/previews/843/843637_14469752-lq.mp3',
   flashlight: 'https://cdn.freesound.org/previews/502/502506_4921277-lq.mp3',
   jump: 'https://cdn.freesound.org/previews/464/464527_7890039-lq.mp3',
   land: 'https://cdn.freesound.org/previews/422/422753_6616210-lq.mp3',
@@ -9,6 +11,8 @@ const SOUND_URLS = {
   door: 'https://cdn.freesound.org/previews/842/842186_13307919-lq.mp3',
   ambience: 'https://cdn.freesound.org/previews/638/638895_11418394-lq.mp3',
 };
+
+const FOOTSTEP_VARIANTS = ['footstep_0', 'footstep_1', 'footstep_2', 'footstep_3'];
 
 export class AudioManager {
   constructor() {
@@ -25,15 +29,15 @@ export class AudioManager {
     try {
       this.ctx = new (window.AudioContext || window.webkitAudioContext)();
       this.masterGain = this.ctx.createGain();
-      this.masterGain.gain.value = 0.35;
+      this.masterGain.gain.value = 0.55;
       this.masterGain.connect(this.ctx.destination);
 
       this.sfxGain = this.ctx.createGain();
-      this.sfxGain.gain.value = 0.7;
+      this.sfxGain.gain.value = 1.0;
       this.sfxGain.connect(this.masterGain);
 
       this.ambienceGain = this.ctx.createGain();
-      this.ambienceGain.gain.value = 0.35;
+      this.ambienceGain.gain.value = 0.5;
       this.ambienceGain.connect(this.masterGain);
 
       this.initialized = true;
@@ -70,10 +74,10 @@ export class AudioManager {
 
     switch (name) {
       case 'footstep':
-        this._playBuffer('footstep', 0.85 + Math.random() * 0.3, 1.0);
+        this._playFootstep(0.9 + Math.random() * 0.25, 1.0);
         break;
       case 'footstep_run':
-        this._playBuffer('footstep_run', 1.3 + Math.random() * 0.3, 1.4);
+        this._playFootstep(1.3 + Math.random() * 0.3, 1.4);
         break;
       case 'flashlight':
         this._playBuffer('flashlight', 1, 0.8);
@@ -107,6 +111,28 @@ export class AudioManager {
     gain.gain.setValueAtTime(vol, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + buf.duration / pitch);
     source.connect(gain);
+    gain.connect(this.sfxGain);
+    source.start(0);
+  }
+
+  _playFootstep(pitch, vol) {
+    const key = FOOTSTEP_VARIANTS[Math.floor(Math.random() * FOOTSTEP_VARIANTS.length)];
+    const buf = this.buffers[key];
+    if (!buf) return;
+    const source = this.ctx.createBufferSource();
+    source.buffer = buf;
+    source.playbackRate.value = pitch;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'peaking';
+    filter.frequency.value = 120;
+    filter.Q.value = 1.5;
+    filter.gain.value = 5;
+    const gain = this.ctx.createGain();
+    const now = this.ctx.currentTime;
+    gain.gain.setValueAtTime(vol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + buf.duration / pitch);
+    source.connect(filter);
+    filter.connect(gain);
     gain.connect(this.sfxGain);
     source.start(0);
   }
