@@ -37,18 +37,19 @@ const ITEM_PLACEMENTS = [
 ];
 
 const ITEM_MODEL_MAP = {
-  almond_water: 'water_bottle.glb', flashlight: '__procedural_flashlight',
-  batteries: '__procedural_battery', lighter: 'lighter.glb',
-  medkit: 'firstaid.glb', key: '__procedural_key', note: 'papers.glb',
+  almond_water: 'water_bottle.glb', flashlight: 'flashlight.glb',
+  batteries: 'battery.glb', lighter: 'lighter.glb',
+  medkit: 'firstaid.glb', key: 'key.glb', note: 'papers.glb',
 };
 
 const ITEM_SCALES = {
   almond_water: 0.0056,
-  flashlight: 1,
+  flashlight: 0.12,
   lighter: 0.00136,
   medkit: 0.13,
-  key: 1,
+  key: 0.046,
   note: 0.00175,
+  batteries: 0.0025,
 };
 
 const FURNITURE_SCALES = {
@@ -59,6 +60,8 @@ const FURNITURE_SCALES = {
   file_cabinet: 0.84,
   bookshelf: 1.1,
   vending_machine: 0.19,
+  computer_screen: 1.3,
+  coffee_machine: 1.5,
 };
 
 const FURNITURE_MODEL_MAP = {
@@ -69,6 +72,8 @@ const FURNITURE_MODEL_MAP = {
   file_cabinet: 'file_cabinet.glb',
   bookshelf: 'bookshelf.glb',
   vending_machine: 'vending_machine.glb',
+  computer_screen: 'computer_screen.glb',
+  coffee_machine: 'coffee_machine.glb',
 };
 
 function _makeMat(name, opts = {}) {
@@ -1059,15 +1064,6 @@ export class Level0 {
     return clone;
   }
 
-  _placeModel(key, scale, x, y, z, rotY) {
-    const model = this._cloneModel(key);
-    model.scale.setScalar(scale);
-    model.rotation.y = rotY || 0;
-    const box = new THREE.Box3().setFromObject(model);
-    model.position.set(x, y - box.min.y, z);
-    this.object3d.add(model);
-  }
-
   _createProps() {
     const cells = [];
     for (let z = 0; z < GH; z++)
@@ -1076,96 +1072,29 @@ export class Level0 {
 
     if (cells.length === 0) return;
 
-    const matCab = _makeMat('cabinet', { color: 0x888c8a, metalness: 0.5, roughness: 0.4 });
-    const matHandle = _makeMat('cabinet_handle', { color: 0x555555, metalness: 0.7, roughness: 0.3 });
-    const matShelf = _makeMat('shelf', { color: 0x9a8c7a, roughness: 0.6, metalness: 0.05 });
-    const matCRT = _makeMat('crt_body', { color: 0x444444, metalness: 0.1, roughness: 0.6 });
-    const matCRTScreen = _makeMat('crt_screen', { color: 0x222233, metalness: 0.3, roughness: 0.2 });
-    const matCoffee = _makeMat('coffee_body', { color: 0x333333, metalness: 0.4, roughness: 0.3 });
-    const matCoffeePanel = _makeMat('coffee_panel', { color: 0x222222, metalness: 0.1, roughness: 0.5 });
-
-    const place = (idx, seed, key, scale, offset) => {
+    const place = (idx, seed, key, offset) => {
       const cell = cells[(idx * seed + 7) % cells.length];
       const cx = cell.x * TILE + TILE / 2 + (offset || 0);
       const cz = cell.z * TILE + TILE / 2 + (offset || 0);
       const h = this._getHeight(cell.x, cell.z);
-      this._placeModel(key, scale, cx, h, cz, idx * 1.2);
-    };
-
-    const buildCabinet = (idx) => {
-      const cell = cells[(idx * 7 + 3) % cells.length];
-      const cx = cell.x * TILE + TILE / 2 + ((idx % 3) - 1) * 0.8;
-      const cz = cell.z * TILE + TILE / 2 + ((idx * 2 + 1) % 3 - 1) * 0.8;
-      const cab = new THREE.Group();
-      const body = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.3, 0.6), matCab);
-      body.position.y = 0.65;
-      cab.add(body);
-      for (let d = 0; d < 4; d++) {
-        const drawer = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.26, 0.04), matCab);
-        drawer.position.set(0, d * 0.28 + 0.14, 0.32);
-        cab.add(drawer);
-        const handle = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.01, 0.02), matHandle);
-        handle.position.set(0, d * 0.28 + 0.14, 0.36);
-        cab.add(handle);
-      }
-      cab.rotation.y = idx * 1.2;
-      cab.position.set(cx, this._getHeight(cell.x, cell.z), cz);
-      this.object3d.add(cab);
-    };
-
-    const buildCRT = (idx) => {
-      const cell = cells[(idx * 17 + 11) % cells.length];
-      const cx = cell.x * TILE + TILE / 2 + ((idx * 3) % 3 - 1) * 0.6;
-      const cz = cell.z * TILE + TILE / 2 + ((idx + 3) % 3 - 1) * 0.6;
-      const g = new THREE.Group();
-      const monitor = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.3, 0.32), matCRT);
-      monitor.position.y = 0.35;
-      g.add(monitor);
-      const screen = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.2, 0.02), matCRTScreen);
-      screen.position.set(0, 0.34, 0.17);
-      g.add(screen);
-      const base = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.03, 0.12), matCRT);
-      base.position.y = 0.015;
-      g.add(base);
-      const neck = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.08, 0.05), matCRT);
-      neck.position.y = 0.08;
-      g.add(neck);
-      g.position.set(cx, this._getHeight(cell.x, cell.z), cz);
-      g.rotation.y = idx * 1.5;
-      this.object3d.add(g);
-    };
-
-    const buildCoffee = (idx) => {
-      const cell = cells[(idx * 19 + 13) % cells.length];
-      const cx = cell.x * TILE + TILE / 2 + ((idx * 3) % 3 - 1) * 0.6;
-      const cz = cell.z * TILE + TILE / 2 + ((idx + 7) % 3 - 1) * 0.6;
-      const g = new THREE.Group();
-      const main = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.3, 0.35), matCoffee);
-      main.position.y = 0.2;
-      g.add(main);
-      const panel = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.06, 0.01), matCoffeePanel);
-      panel.position.set(0, 0.28, 0.18);
-      g.add(panel);
-      const drip = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.04, 0.06), matCoffee);
-      drip.position.set(0, 0.08, 0.1);
-      g.add(drip);
-      const top = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.02, 0.2), matCoffee);
-      top.position.y = 0.36;
-      g.add(top);
-      g.position.set(cx, this._getHeight(cell.x, cell.z), cz);
-      g.rotation.y = idx * 1.5;
-      this.object3d.add(g);
+      const scale = FURNITURE_SCALES[key];
+      const model = this._cloneModel(key);
+      model.scale.setScalar(scale);
+      model.rotation.y = idx * 1.2;
+      const box = new THREE.Box3().setFromObject(model);
+      model.position.set(cx, h - box.min.y, cz);
+      this.object3d.add(model);
     };
 
     const n = cells.length;
-    for (let i = 0; i < Math.min(6, n); i++) buildCabinet(i);
-    for (let i = 0; i < Math.min(4, n); i++) place(i, 11, 'bookshelf', FURNITURE_SCALES.bookshelf, ((i * 3) % 3 - 1) * 0.6);
-    for (let i = 0; i < Math.min(4, n); i++) buildCRT(i);
-    for (let i = 0; i < Math.min(4, n); i++) buildCoffee(i);
-    for (let i = 0; i < Math.min(6, n); i++) place(i, 13, 'desk', FURNITURE_SCALES.desk, ((i * 2) % 3 - 1) * 0.8);
-    for (let i = 0; i < Math.min(6, n); i++) place(i, 17, 'office_chair', FURNITURE_SCALES.office_chair, ((i * 3) % 3 - 1) * 0.5);
-    for (let i = 0; i < Math.min(4, n); i++) place(i, 23, 'cabinet', FURNITURE_SCALES.cabinet, ((i * 3) % 3 - 1) * 0.6);
-    for (let i = 0; i < Math.min(3, n); i++) place(i, 29, 'vending_machine', FURNITURE_SCALES.vending_machine, ((i * 2) % 3 - 1) * 0.4);
+    for (let i = 0; i < Math.min(6, n); i++) place(i, 7, 'file_cabinet', ((i % 3) - 1) * 0.8);
+    for (let i = 0; i < Math.min(4, n); i++) place(i, 11, 'bookshelf', ((i * 3) % 3 - 1) * 0.6);
+    for (let i = 0; i < Math.min(4, n); i++) place(i, 17, 'computer_screen', ((i * 3) % 3 - 1) * 0.6);
+    for (let i = 0; i < Math.min(4, n); i++) place(i, 19, 'coffee_machine', ((i * 3) % 3 - 1) * 0.6);
+    for (let i = 0; i < Math.min(6, n); i++) place(i, 13, 'desk', ((i * 2) % 3 - 1) * 0.8);
+    for (let i = 0; i < Math.min(6, n); i++) place(i, 3, 'office_chair', ((i * 3) % 3 - 1) * 0.5);
+    for (let i = 0; i < Math.min(4, n); i++) place(i, 23, 'cabinet', ((i * 3) % 3 - 1) * 0.6);
+    for (let i = 0; i < Math.min(3, n); i++) place(i, 29, 'vending_machine', ((i * 2) % 3 - 1) * 0.4);
     for (let i = 0; i < Math.min(4, n); i++) {
       const cell = cells[(i * 13 + 7) % cells.length];
       const cx = cell.x * TILE + TILE / 2 + ((i * 2) % 3 - 1) * 0.8;
@@ -1183,48 +1112,9 @@ export class Level0 {
     const modelKey = ITEM_MODEL_MAP[type];
     if (!modelKey) return;
 
-    let mesh;
-    if (modelKey === '__procedural_battery') {
-      const mat = _makeMat('battery', { color: 0xcc3333, metalness: 0.4, roughness: 0.3 });
-      mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.03, 0.08, 8), mat);
-    } else if (modelKey === '__procedural_flashlight') {
-      const g = new THREE.Group();
-      const bodyMat = _makeMat('flashlight_body', { color: 0x333333, metalness: 0.6, roughness: 0.3 });
-      const headMat = _makeMat('flashlight_head', { color: 0x444444, metalness: 0.5, roughness: 0.4 });
-      const lensMat = _makeMat('flashlight_lens', { color: 0xcccc88, metalness: 0.1, roughness: 0.2 });
-      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.03, 0.12, 12), bodyMat);
-      body.rotation.x = Math.PI / 2;
-      g.add(body);
-      const head = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.035, 0.03, 12), headMat);
-      head.rotation.x = Math.PI / 2;
-      head.position.x = 0.075;
-      g.add(head);
-      const lens = new THREE.Mesh(new THREE.CircleGeometry(0.035, 12), lensMat);
-      lens.rotation.y = Math.PI / 2;
-      lens.position.x = 0.09;
-      g.add(lens);
-      g.scale.setScalar(1.5);
-      mesh = g;
-    } else if (modelKey === '__procedural_key') {
-      const g = new THREE.Group();
-      const mat = _makeMat('key', { color: 0xccaa44, metalness: 0.7, roughness: 0.3 });
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.025, 0.008, 8, 12), mat);
-      ring.rotation.x = Math.PI / 2;
-      ring.position.z = 0.06;
-      g.add(ring);
-      const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.003, 0.09), mat);
-      g.add(shaft);
-      for (let i = 0; i < 3; i++) {
-        const tooth = new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.003, 0.015), mat);
-        tooth.position.set(0, -0.008 - i * 0.006, -0.04 - i * 0.012);
-        g.add(tooth);
-      }
-      mesh = g;
-    } else {
-      mesh = this._cloneModel(modelKey.replace('.glb', ''));
-      const s = ITEM_SCALES[type];
-      if (s) mesh.scale.setScalar(s);
-    }
+    const mesh = this._cloneModel(modelKey.replace('.glb', ''));
+    const s = ITEM_SCALES[type];
+    if (s) mesh.scale.setScalar(s);
 
     const gx = Math.floor((x) / TILE);
     const gz = Math.floor((z) / TILE);
