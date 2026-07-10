@@ -392,9 +392,10 @@ export class Level0 {
       const cx = cell.x * TILE + TILE / 2 + ((i % 3) - 1) * 0.8;
       const cz = cell.z * TILE + TILE / 2 + ((i * 2 + 1) % 3 - 1) * 0.8;
       const cab = this._cloneModel('filing_cabinet');
-      cab.position.set(cx, 0, cz);
       cab.rotation.y = i * 1.2;
       cab.scale.setScalar(FURNITURE_SCALES.filing_cabinet);
+      const box = new THREE.Box3().setFromObject(cab);
+      cab.position.set(cx, -box.min.y, cz);
       this.object3d.add(cab);
     }
 
@@ -425,9 +426,10 @@ export class Level0 {
       const cx = cell.x * TILE + TILE / 2 + ((i * 2) % 3 - 1) * 0.8;
       const cz = cell.z * TILE + TILE / 2 + ((i + 5) % 3 - 1) * 0.8;
       const cooler = this._cloneModel('water_cooler');
-      cooler.position.set(cx, 0, cz);
       cooler.rotation.set(-Math.PI / 2, i * 1.5, 0);
       cooler.scale.setScalar(0.1);
+      const box = new THREE.Box3().setFromObject(cooler);
+      cooler.position.set(cx, -box.min.y, cz);
       this.object3d.add(cooler);
     }
   }
@@ -446,7 +448,12 @@ export class Level0 {
       if (s) mesh.scale.setScalar(s);
     }
 
-    mesh.position.set(x, 0.05, z);
+    if (mesh.isGroup) {
+      const box = new THREE.Box3().setFromObject(mesh);
+      mesh.position.set(x, -box.min.y, z);
+    } else {
+      mesh.position.set(x, 0.04, z);
+    }
     this.object3d.add(mesh);
     this.interactables.push({ mesh, type, position: new THREE.Vector3(x, 0.1, z) });
   }
