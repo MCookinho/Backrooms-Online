@@ -92,7 +92,6 @@ export class Level0 {
     this.spawnPoint = new THREE.Vector3((10 + 0.5) * TILE, 0, (10 + 0.5) * TILE);
     this.object3d = new THREE.Group();
     this.interactables = [];
-    this.lights = [];
     this.grid = null;
     this.textures = {};
     this.models = {};
@@ -297,59 +296,42 @@ export class Level0 {
   }
 
   _createLights() {
-    const ambient = new THREE.AmbientLight(0xffddbb, 1.4);
+    const ambient = new THREE.AmbientLight(0xffddbb, 0.6);
     this.object3d.add(ambient);
+
+    const hemi = new THREE.HemisphereLight(0xffeedd, 0x443322, 1.0);
+    this.object3d.add(hemi);
+
+    const dir = new THREE.DirectionalLight(0xffddaa, 0.4);
+    dir.position.set(10, 20, 10);
+    this.object3d.add(dir);
 
     const fixtureMat = _makeMat('fixture', {
       map: this.textures.ceilDiff, normalMap: this.textures.ceilNor,
       roughnessMap: this.textures.ceilRough, roughness: 0.7, metalness: 0.1,
-      emissiveMap: this.textures.ceilEmit, emissive: 0xffffff, emissiveIntensity: 0.5,
-    });
-    const glowMat = _makeMat('glow', {
-      color: 0xffffcc, emissive: 0xffffaa, emissiveIntensity: 0.25,
-      transparent: true, opacity: 0.15,
+      emissiveMap: this.textures.ceilEmit, emissive: 0xffddaa, emissiveIntensity: 0.8,
     });
 
     const fGeom = new THREE.BoxGeometry(1.6, 0.05, 0.25);
-    const gGeom = new THREE.BoxGeometry(1.4, 0.02, 0.18);
-    const fixInstances = [];
-    const glowInstances = [];
+    const positions = [];
 
     for (let z = 2; z < GH - 1; z += 6) {
       for (let x = 2; x < GW - 1; x += 6) {
         if (!this._isWalkable(x, z)) continue;
-        fixInstances.push({ x, z });
-        glowInstances.push({ x, z });
+        positions.push({ x: x * TILE + TILE / 2, z: z * TILE + TILE / 2 });
       }
     }
 
-    if (fixInstances.length > 0) {
-      const fMesh = new THREE.InstancedMesh(fGeom, fixtureMat, fixInstances.length);
-      const gMesh = new THREE.InstancedMesh(gGeom, glowMat, glowInstances.length);
+    if (positions.length > 0) {
+      const fMesh = new THREE.InstancedMesh(fGeom, fixtureMat, positions.length);
       const d = new THREE.Object3D();
-      for (let i = 0; i < fixInstances.length; i++) {
-        const cx = fixInstances[i].x * TILE + TILE / 2;
-        const cz = fixInstances[i].z * TILE + TILE / 2;
-        d.position.set(cx, ROOM_H - 0.025, cz);
-        d.updateMatrix(); fMesh.setMatrixAt(i, d.matrix);
-        d.position.set(cx, ROOM_H - 0.04, cz);
-        d.updateMatrix(); gMesh.setMatrixAt(i, d.matrix);
+      for (let i = 0; i < positions.length; i++) {
+        d.position.set(positions[i].x, ROOM_H - 0.025, positions[i].z);
+        d.updateMatrix();
+        fMesh.setMatrixAt(i, d.matrix);
       }
       fMesh.instanceMatrix.needsUpdate = true;
-      gMesh.instanceMatrix.needsUpdate = true;
       this.object3d.add(fMesh);
-      this.object3d.add(gMesh);
-    }
-
-    const buzz = [0.3, 0.6, 0.45, 0.8, 0.35, 0.75, 0.5, 0.9, 0.4, 0.7, 0.55, 0.85, 0.65];
-    for (let i = 0; i < fixInstances.length; i++) {
-      const cx = fixInstances[i].x * TILE + TILE / 2;
-      const cz = fixInstances[i].z * TILE + TILE / 2;
-      const pl = new THREE.PointLight(0xffddaa, 0.25, 7);
-      pl.position.set(cx, ROOM_H - 0.1, cz);
-      pl.userData = { timer: Math.random() * 10, buzzRange: buzz[i % buzz.length] };
-      this.object3d.add(pl);
-      this.lights.push(pl);
     }
   }
 
@@ -457,11 +439,6 @@ export class Level0 {
   getWallColliders() { return []; }
 
   update(delta) {
-    for (const light of this.lights) {
-      light.userData.timer += delta;
-      const f = Math.sin(light.userData.timer * light.userData.buzzRange * 3);
-      light.intensity = 0.25 * Math.max(0.85, 1 - Math.abs(f * 0.15));
-    }
   }
 
   getInteractables() { return this.interactables; }
