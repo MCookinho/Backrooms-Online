@@ -754,24 +754,24 @@ export class Level0 {
         if (rng() > 0.13) return;
 
         const wallH = ROOM_H;
-        const decoX = isX ? nx : (x * TILE + TILE / 2);
-        const decoZ = isX ? (z * TILE + TILE / 2) : nz;
-        const wallDir = isX ? 'z' : 'x';
+
+        const dirX = isX ? 0 : (cx - nx > 0 ? 1 : -1);
+        const dirZ = isX ? (cz - nz > 0 ? 1 : -1) : 0;
+        const rotY = Math.atan2(dirX, dirZ);
+
+        const faceZ = (nz === z * TILE) ? nz + WALL_T / 2 + 0.003 : nz - WALL_T / 2 - 0.003;
+        const faceX = (nx === x * TILE) ? nx + WALL_T / 2 + 0.003 : nx - WALL_T / 2 - 0.003;
+        const posX = isX ? cx : faceX;
+        const posZ = isX ? faceZ : cz;
 
         const kind = rng();
         if (kind < 0.33) {
           const model = this.models.outlet;
           if (!model || model.children.length === 0) return;
           const clone = model.clone();
-          const faceZ = (nz === z * TILE) ? nz + WALL_T / 2 + 0.003 : nz - WALL_T / 2 - 0.003;
-          const faceX = (nx === x * TILE) ? nx + WALL_T / 2 + 0.003 : nx - WALL_T / 2 - 0.003;
-          clone.position.set(
-            wallDir === 'z' ? decoX : faceX,
-            h + 0.14,
-            wallDir === 'z' ? faceZ : decoZ
-          );
+          clone.position.set(posX, h + 0.14, posZ);
           clone.scale.setScalar(0.0038);
-          if (wallDir === 'x') clone.rotation.y = Math.PI / 2;
+          clone.rotation.y = rotY;
           this.object3d.add(clone);
         } else if (kind < 0.66) {
           const usePainting = rng() < 0.3 && this.models.wall_painting && this.models.wall_painting.children.length > 0;
@@ -779,14 +779,8 @@ export class Level0 {
           const model = this.models[modelKey];
           if (!model || model.children.length === 0) return;
           const clone = model.clone();
-          const fFaceZ = (nz === z * TILE) ? nz + WALL_T / 2 + 0.003 : nz - WALL_T / 2 - 0.003;
-          const fFaceX = (nx === x * TILE) ? nx + WALL_T / 2 + 0.003 : nx - WALL_T / 2 - 0.003;
           const fy = h + 0.5 + rng() * (wallH - 0.8);
-          clone.position.set(
-            wallDir === 'z' ? decoX : fFaceX,
-            fy,
-            wallDir === 'z' ? fFaceZ : decoZ
-          );
+          clone.position.set(posX, fy, posZ);
           const scaleBase = usePainting ? 0.35 : 0.6 + rng() * 0.6;
           const portrait = rng() < 0.5;
           clone.scale.set(
@@ -794,7 +788,7 @@ export class Level0 {
             portrait ? scaleBase : scaleBase * 0.75,
             scaleBase
           );
-          if (wallDir === 'x') clone.rotation.y = Math.PI / 2;
+          clone.rotation.y = rotY;
           this.object3d.add(clone);
         } else {
           const sKey = scratchKeys[Math.floor(rng() * scratchKeys.length)];
@@ -804,15 +798,8 @@ export class Level0 {
           const scratchH = 0.06 + rng() * 0.12;
           const plane = new THREE.Mesh(new THREE.PlaneGeometry(scratchW, scratchH), mat);
           const sy = h + 0.15 + rng() * (wallH - 0.3);
-          const sFaceZ = (nz === z * TILE) ? nz + WALL_T / 2 + 0.002 : nz - WALL_T / 2 - 0.002;
-          const sFaceX = (nx === x * TILE) ? nx + WALL_T / 2 + 0.002 : nx - WALL_T / 2 - 0.002;
-          plane.position.set(
-            wallDir === 'z' ? decoX : sFaceX,
-            sy,
-            wallDir === 'z' ? sFaceZ : decoZ
-          );
-          if (wallDir === 'x') plane.rotation.y = Math.PI / 2;
-          plane.rotation.x = rng() * Math.PI * 2;
+          plane.position.set(posX, sy, posZ);
+          plane.rotation.set(0, rotY, rng() * Math.PI * 2);
           this.object3d.add(plane);
         }
       };
