@@ -355,10 +355,16 @@ export class Player {
     }
 
     if (this.isGrounded && this.isMoving && this.audio) {
-      const footSpeed = this.isCrouching ? CROUCH_SPEED : (this.isRunning ? RUN_SPEED : WALK_SPEED);
       this._footstepTimer -= delta;
       if (this._footstepTimer <= 0) {
-        const interval = 0.45 / Math.max(footSpeed / WALK_SPEED, 0.5) * (0.9 + Math.random() * 0.2);
+        let interval;
+        if (this.isCrouching) {
+          interval = 0.7 * (0.85 + Math.random() * 0.3);
+        } else if (this.isRunning) {
+          interval = 0.3 * (0.9 + Math.random() * 0.2);
+        } else {
+          interval = 0.5 * (0.85 + Math.random() * 0.3);
+        }
         this._footstepTimer = interval;
         this.audio.play(this.isRunning ? 'footstep_run' : 'footstep');
       }

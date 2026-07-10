@@ -1,8 +1,4 @@
 const SOUND_URLS = {
-  footstep_0: 'https://cdn.freesound.org/previews/843/843634_14469752-lq.mp3',
-  footstep_1: 'https://cdn.freesound.org/previews/843/843635_14469752-lq.mp3',
-  footstep_2: 'https://cdn.freesound.org/previews/843/843636_14469752-lq.mp3',
-  footstep_3: 'https://cdn.freesound.org/previews/843/843637_14469752-lq.mp3',
   flashlight: 'https://cdn.freesound.org/previews/502/502506_4921277-lq.mp3',
   jump: 'https://cdn.freesound.org/previews/464/464527_7890039-lq.mp3',
   land: 'https://cdn.freesound.org/previews/422/422753_6616210-lq.mp3',
@@ -12,7 +8,7 @@ const SOUND_URLS = {
   ambience: 'https://cdn.freesound.org/previews/638/638895_11418394-lq.mp3',
 };
 
-const FOOTSTEP_VARIANTS = ['footstep_0', 'footstep_1', 'footstep_2', 'footstep_3'];
+const SR = 44100;
 
 export class AudioManager {
   constructor() {
@@ -23,6 +19,59 @@ export class AudioManager {
     this.sfxGain = null;
     this.ambienceGain = null;
     this.initialized = false;
+  }
+
+  _generateNoiseBuffer(duration, lowFreq, highFreq, seed) {
+    const len = Math.floor(SR * duration);
+    const buf = this.ctx.createBuffer(1, len, SR);
+    const data = buf.getChannelData(0);
+    let s = seed || 0;
+    let lp = 0;
+    const flc = 2 * Math.PI * (lowFreq || 80) / SR;
+    const fhc = 2 * Math.PI * (highFreq || 200) / SR;
+    for (let i = 0; i < len; i++) {
+      s = (s * 16807 + 0) % 2147483647;
+      const white = (s / 2147483647) * 2 - 1;
+      lp += (white - lp) * fhc;
+      data[i] = lp;
+    }
+    let sum = 0;
+    for (let i = 0; i < len; i++) sum += Math.abs(data[i]);
+    const avg = sum / len;
+    if (avg > 0.001) {
+      const scale = 0.35 / avg;
+      for (let i = 0; i < len; i++) data[i] *= scale;
+    }
+    return buf;
+  }
+
+  _generateFootstepBuffers() {
+    for (let i = 0; i < 4; i++) {
+      const len = Math.floor(SR * 0.2);
+      const buf = this.ctx.createBuffer(1, len, SR);
+      const data = buf.getChannelData(0);
+      let s = (i * 12345 + 67890) % 2147483647;
+      let lp = 0;
+      const fc = 2 * Math.PI * (80 + i * 20) / SR;
+      for (let j = 0; j < len; j++) {
+        s = (s * 16807 + 0) % 2147483647;
+        const white = (s / 2147483647) * 2 - 1;
+        lp += (white - lp) * fc;
+        const t = j / SR;
+        const env = Math.exp(-t * 25);
+        data[j] = lp * env;
+      }
+      let peak = 0;
+      for (let j = 0; j < len; j++) {
+        const a = Math.abs(data[j]);
+        if (a > peak) peak = a;
+      }
+      if (peak > 0.001) {
+        const scale = 0.4 / peak;
+        for (let j = 0; j < len; j++) data[j] *= scale;
+      }
+      this.buffers[`footstep_${i}`] = buf;
+    }
   }
 
   init() {
@@ -41,6 +90,7 @@ export class AudioManager {
       this.ambienceGain.connect(this.masterGain);
 
       this.initialized = true;
+      this._generateFootstepBuffers();
       this._loadPromise = this._loadSounds();
     } catch (e) {
       console.warn('AudioManager: Web Audio not available');
@@ -69,15 +119,12 @@ export class AudioManager {
     if (!this.initialized) return;
     this._ensureResumed();
 
-    const buf = this.buffers[name];
-    if (!buf) return;
-
     switch (name) {
       case 'footstep':
-        this._playFootstep(0.9 + Math.random() * 0.25, 1.0);
+        this._playFootstep(0.95 + Math.random() * 0.1, 0.65);
         break;
       case 'footstep_run':
-        this._playFootstep(1.3 + Math.random() * 0.3, 1.4);
+        this._playFootstep(1.1 + Math.random() * 0.15, 1.0);
         break;
       case 'flashlight':
         this._playBuffer('flashlight', 1, 0.8);
@@ -116,21 +163,21 @@ export class AudioManager {
   }
 
   _playFootstep(pitch, vol) {
-    const key = FOOTSTEP_VARIANTS[Math.floor(Math.random() * FOOTSTEP_VARIANTS.length)];
+    const i = Math.floor(Math.random() * 4);
+    const key = `footstep_${i}`;
     const buf = this.buffers[key];
     if (!buf) return;
     const source = this.ctx.createBufferSource();
     source.buffer = buf;
     source.playbackRate.value = pitch;
-    const filter = this.ctx.createBiquadFilter();
-    filter.type = 'peaking';
-    filter.frequency.value = 120;
-    filter.Q.value = 1.5;
-    filter.gain.value = 5;
     const gain = this.ctx.createGain();
     const now = this.ctx.currentTime;
-    gain.gain.setValueAtTime(vol, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + buf.duration / pitch);
+    const vVar = 0.8 + Math.random() * 0.4;
+    gain.gain.setValueAtTime(vol * vVar, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2 / pitch);
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 300 + Math.random() * 400;
     source.connect(filter);
     filter.connect(gain);
     gain.connect(this.sfxGain);

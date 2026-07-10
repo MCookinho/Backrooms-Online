@@ -368,7 +368,7 @@ export class Level0 {
       for (const [nx, nz] of [[x+1,z],[x,z+1],[x-1,z],[x,z-1]]) {
         if (!this._isWalkable(nx, nz)) continue;
         const nh = this._getHeight(nx, nz);
-        const dh = nh - h;
+        const dh = Math.abs(nh - h);
         if (dh >= 0.1 && dh <= 2.0) return false;
       }
       return true;
@@ -414,7 +414,10 @@ export class Level0 {
   }
 
   _buildFloorSteps() {
-    const mat = _makeMat('floorStep', { color: 0x8a8a7a, roughness: 0.9 });
+    const mat = _makeMat('floorStep', {
+      map: this.textures.wallDiff, normalMap: this.textures.wallNor,
+      roughness: 0.85,
+    });
     const geoms = [];
     for (const { x, z } of this._walkableTiles) {
       const h = this._getHeight(x, z);
@@ -440,7 +443,10 @@ export class Level0 {
   }
 
   _buildCeilingSteps() {
-    const mat = _makeMat('ceilStep', { color: 0xccc8c0, roughness: 0.9 });
+    const mat = _makeMat('ceilStep', {
+      map: this.textures.wallDiff, normalMap: this.textures.wallNor,
+      roughness: 0.85,
+    });
     const geoms = [];
     for (const { x, z } of this._walkableTiles) {
       const h = this._getHeight(x, z) + ROOM_H;
@@ -466,7 +472,10 @@ export class Level0 {
   }
 
   _buildPitFloors() {
-    const mat = _makeMat('pitFloor', { color: 0x222222, roughness: 1, metalness: 0, side: THREE.DoubleSide });
+    const mat = _makeMat('pitFloor', {
+      map: this.textures.floorDiff, normalMap: this.textures.floorNorm,
+      roughness: 0.95, side: THREE.DoubleSide, color: 0x555555,
+    });
     const pitTiles = [];
     for (let z = 0; z < GH; z++)
       for (let x = 0; x < GW; x++)
@@ -533,8 +542,16 @@ export class Level0 {
   }
 
   _buildRamps() {
-    const rampMat = _makeMat('ramp', { color: 0x8a8a7a, roughness: 0.9 });
-    const geoms = [];
+    const rampMat = _makeMat('ramp', {
+      map: this.textures.floorDiff, normalMap: this.textures.floorNorm,
+      roughness: 0.9,
+    });
+    const sideMat = _makeMat('rampSide', {
+      map: this.textures.wallDiff, normalMap: this.textures.wallNor,
+      roughness: 0.85,
+    });
+    const rampGeoms = [];
+    const sideGeoms = [];
 
     for (const { x, z } of this._walkableTiles) {
       const h = this._getHeight(x, z);
@@ -548,47 +565,64 @@ export class Level0 {
         const isX = nx !== x;
         const px = x * TILE, pz = z * TILE;
 
-        const verts = new Float32Array(isX ? [
-          px, h, pz, px + TILE, nh, pz, px + TILE, nh, pz + TILE,
-          px, h, pz, px + TILE, nh, pz + TILE, px, h, pz + TILE,
-        ] : [
-          px, h, pz, px + TILE, h, pz, px + TILE, nh, pz + TILE,
-          px, h, pz, px + TILE, nh, pz + TILE, px, h, pz + TILE,
-        ]);
-
-        const g = new THREE.BufferGeometry();
-        g.setAttribute('position', new THREE.BufferAttribute(verts, 3));
-        const uvs = new Float32Array(12);
-        for (let k = 0; k < 6; k++) { uvs[k * 2] = k < 3 ? 0 : 1; uvs[k * 2 + 1] = (k % 3) * 0.5; }
-        g.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
-        g.computeVertexNormals();
-        geoms.push(g);
+        if (isX) {
+          const verts = new Float32Array([
+            px, h, pz, px + TILE, nh, pz + TILE, px + TILE, nh, pz,
+            px, h, pz, px, h, pz + TILE, px + TILE, nh, pz + TILE,
+          ]);
+          const g = new THREE.BufferGeometry();
+          g.setAttribute('position', new THREE.BufferAttribute(verts, 3));
+          g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array([
+            0, 0, 1, 1, 1, 0,
+            0, 0, 0, 1, 1, 1,
+          ]), 2));
+          g.computeVertexNormals();
+          rampGeoms.push(g);
+        } else {
+          const verts = new Float32Array([
+            px, h, pz, px + TILE, nh, pz + TILE, px + TILE, h, pz,
+            px, h, pz, px, nh, pz + TILE, px + TILE, nh, pz + TILE,
+          ]);
+          const g = new THREE.BufferGeometry();
+          g.setAttribute('position', new THREE.BufferAttribute(verts, 3));
+          g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array([
+            0, 0, 1, 1, 1, 0,
+            0, 0, 0, 1, 1, 1,
+          ]), 2));
+          g.computeVertexNormals();
+          rampGeoms.push(g);
+        }
 
         const sw = WALL_T;
         if (isX) {
           for (const sz of [pz, pz + TILE]) {
             const sg = new THREE.BoxGeometry(TILE, dh, sw);
             sg.translate(px + TILE / 2, h + dh / 2, sz);
-            geoms.push(sg);
+            sideGeoms.push(sg);
           }
         } else {
           for (const sx of [px, px + TILE]) {
             const sg = new THREE.BoxGeometry(sw, dh, TILE);
             sg.translate(sx, h + dh / 2, pz + TILE / 2);
-            geoms.push(sg);
+            sideGeoms.push(sg);
           }
         }
       }
     }
 
-    if (geoms.length > 0) {
-      const merged = mergeGeoms(geoms);
-      this.object3d.add(new THREE.Mesh(merged, rampMat));
+    if (rampGeoms.length > 0) {
+      this.object3d.add(new THREE.Mesh(mergeGeoms(rampGeoms), rampMat));
+    }
+    if (sideGeoms.length > 0) {
+      this.object3d.add(new THREE.Mesh(mergeGeoms(sideGeoms), sideMat));
     }
   }
 
   _buildPitWalls() {
-    const pitMat = _makeMat('pitwall', { color: 0x333333, roughness: 1, metalness: 0 });
+    const pitMat = _makeMat('pitwall', {
+      map: this.textures.wallDiff, normalMap: this.textures.wallNor,
+      roughness: 0.85,
+    });
     const pitGeoms = [];
 
     for (const { x, z } of this._walkableTiles) {
