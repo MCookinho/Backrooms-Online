@@ -702,12 +702,24 @@ export class Level0 {
         const sw = WALL_T;
         if (isX) {
           for (const sz of [pz, pz + TILE]) {
+            const az = (sz === pz) ? oz - 1 : oz + 1;
+            if (az >= 0 && az < GH &&
+                this._isWalkable(ox, az) && this._isWalkable(ox + 1, az)) {
+              const dh2 = Math.abs(this._getHeight(ox + 1, az) - this._getHeight(ox, az));
+              if (dh2 >= 0.1 && dh2 <= 2.0) continue;
+            }
             const sg = new THREE.BoxGeometry(TILE, absDh, sw);
             sg.translate(px + TILE / 2, Math.min(oh, oNh) + absDh / 2, sz);
             sideGeoms.push(sg);
           }
         } else {
           for (const sx of [px, px + TILE]) {
+            const ax = (sx === px) ? ox - 1 : ox + 1;
+            if (ax >= 0 && ax < GW &&
+                this._isWalkable(ax, oz) && this._isWalkable(ax, oz + 1)) {
+              const dh2 = Math.abs(this._getHeight(ax, oz + 1) - this._getHeight(ax, oz));
+              if (dh2 >= 0.1 && dh2 <= 2.0) continue;
+            }
             const sg = new THREE.BoxGeometry(sw, absDh, TILE);
             sg.translate(sx, Math.min(oh, oNh) + absDh / 2, pz + TILE / 2);
             sideGeoms.push(sg);
