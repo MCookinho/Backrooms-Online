@@ -455,9 +455,11 @@ export class Level0 {
     this._buildFloorSteps();
     this._buildCeilingSteps();
     this._buildWalls();
+    this._buildBaseboards();
     this._buildRamps();
     this._buildPitWalls();
     this._buildPitFloors();
+    this._buildWallDecorations();
     this._createLights();
     this._createProps();
     this._createItems();
@@ -638,6 +640,135 @@ export class Level0 {
 
     merge(geomsX, wallMat);
     merge(geomsZ, wallMat);
+  }
+
+  _buildBaseboards() {
+    const mat = _makeMat('baseboard', {
+      color: 0xe8e0d5, roughness: 0.7, metalness: 0,
+    });
+    const geoms = [];
+    const bh = 0.08;
+    const bp = 0.025;
+    for (const { x, z } of this._walkableTiles) {
+      const h = this._getHeight(x, z);
+      const cx = x * TILE + TILE / 2, cz = z * TILE + TILE / 2;
+
+      const addBase = (nx, nz, isX, nX, nZ) => {
+        if (this._isWalkable(nX, nZ)) return;
+        const w = isX ? TILE : WALL_T + bp;
+        const d = isX ? WALL_T + bp : TILE;
+        const g = new THREE.BoxGeometry(w, bh, d);
+        g.translate(nx, h + bh / 2, nz);
+        geoms.push(g);
+      };
+
+      if (z === 0 || !this._isWalkable(x, z - 1))
+        addBase(cx, z * TILE, true, x, z - 1);
+      if (z === GH - 1 || !this._isWalkable(x, z + 1))
+        addBase(cx, z * TILE + TILE, true, x, z + 1);
+      if (x === 0 || !this._isWalkable(x - 1, z))
+        addBase(x * TILE, cz, false, x - 1, z);
+      if (x === GW - 1 || !this._isWalkable(x + 1, z))
+        addBase(x * TILE + TILE, cz, false, x + 1, z);
+    }
+    if (geoms.length > 0) {
+      this.object3d.add(new THREE.Mesh(mergeGeoms(geoms), mat));
+    }
+  }
+
+  _buildWallDecorations() {
+    const rng = () => Math.random();
+
+    for (const { x, z } of this._walkableTiles) {
+      const h = this._getHeight(x, z);
+      const cx = x * TILE + TILE / 2, cz = z * TILE + TILE / 2;
+
+      const tryDeco = (nx, nz, isX, nX, nZ) => {
+        if (this._isWalkable(nX, nZ)) return;
+        if (rng() > 0.004) return;
+
+        const wallH = ROOM_H;
+        const decoX = isX ? nx : (x * TILE + TILE / 2);
+        const decoZ = isX ? (z * TILE + TILE / 2) : nz;
+        const wallDir = isX ? 'z' : 'x';
+
+        const kind = rng();
+        if (kind < 0.33) {
+          const outletMat = _makeMat('outlet', { color: 0xccc8c0, roughness: 0.4, metalness: 0.1 });
+          const outlet = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.055, 0.006), outletMat);
+          outlet.position.set(decoX, h + 0.1, decoZ);
+          if (wallDir === 'z') {
+            const faceZ = (nz === z * TILE) ? nz + WALL_T / 2 + 0.003 : nz - WALL_T / 2 - 0.003;
+            outlet.position.z = faceZ;
+          } else {
+            const faceX = (nx === x * TILE) ? nx + WALL_T / 2 + 0.003 : nx - WALL_T / 2 - 0.003;
+            outlet.position.x = faceX;
+          }
+          this.object3d.add(outlet);
+
+          const holeMat = _makeMat('outletHole', { color: 0x332e28, roughness: 0.8 });
+          for (const oh of [-0.012, 0.012]) {
+            const hole = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.014, 0.007), holeMat);
+            hole.position.copy(outlet.position);
+            if (wallDir === 'z') {
+              hole.position.x += oh;
+              hole.position.z += 0.001;
+            } else {
+              hole.position.z += oh;
+              hole.position.x += 0.001;
+            }
+            this.object3d.add(hole);
+          }
+        } else if (kind < 0.66) {
+          const frameMat = _makeMat('frame', { color: 0xc8b898, roughness: 0.3, metalness: 0.05 });
+          const fw = 0.14 + rng() * 0.1;
+          const fh = 0.10 + rng() * 0.08;
+          const frame = new THREE.Mesh(new THREE.BoxGeometry(fw, fh, 0.008), frameMat);
+          const fy = h + 0.5 + rng() * (wallH - 0.8);
+          frame.position.set(decoX, fy, decoZ);
+          if (wallDir === 'z') {
+            const faceZ = (nz === z * TILE) ? nz + WALL_T / 2 + 0.003 : nz - WALL_T / 2 - 0.003;
+            frame.position.z = faceZ;
+          } else {
+            const faceX = (nx === x * TILE) ? nx + WALL_T / 2 + 0.003 : nx - WALL_T / 2 - 0.003;
+            frame.position.x = faceX;
+          }
+          this.object3d.add(frame);
+
+          const innerMat = _makeMat('frameInner', { color: 0xf5f0e8, roughness: 0.6 });
+          const inner = new THREE.Mesh(new THREE.BoxGeometry(fw * 0.7, fh * 0.7, 0.009), innerMat);
+          inner.position.copy(frame.position);
+          if (wallDir === 'z') inner.position.z += 0.001;
+          else inner.position.x += 0.001;
+          this.object3d.add(inner);
+        } else {
+          const scratchMat = _makeMat('scratch', { color: 0x55504a, roughness: 0.6 });
+          const sw = wallDir === 'z' ? 0.002 + rng() * 0.015 : 0.025 + rng() * 0.04;
+          const sh = 0.002 + rng() * 0.004;
+          const sd = wallDir === 'z' ? 0.025 + rng() * 0.04 : 0.002 + rng() * 0.015;
+          const scratch = new THREE.Mesh(new THREE.BoxGeometry(sw, sh, sd), scratchMat);
+          const sy = h + 0.15 + rng() * (wallH - 0.3);
+          scratch.position.set(decoX, sy, decoZ);
+          if (wallDir === 'z') {
+            const faceZ = (nz === z * TILE) ? nz + WALL_T / 2 + 0.002 : nz - WALL_T / 2 - 0.002;
+            scratch.position.z = faceZ;
+          } else {
+            const faceX = (nx === x * TILE) ? nx + WALL_T / 2 + 0.002 : nx - WALL_T / 2 - 0.002;
+            scratch.position.x = faceX;
+          }
+          this.object3d.add(scratch);
+        }
+      };
+
+      if (z === 0 || !this._isWalkable(x, z - 1))
+        tryDeco(cx, z * TILE, true, x, z - 1);
+      if (z === GH - 1 || !this._isWalkable(x, z + 1))
+        tryDeco(cx, z * TILE + TILE, true, x, z + 1);
+      if (x === 0 || !this._isWalkable(x - 1, z))
+        tryDeco(x * TILE, cz, false, x - 1, z);
+      if (x === GW - 1 || !this._isWalkable(x + 1, z))
+        tryDeco(x * TILE + TILE, cz, false, x + 1, z);
+    }
   }
 
   _buildRamps() {
