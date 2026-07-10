@@ -365,7 +365,8 @@ export class Level0 {
     });
     const floorTiles = this._walkableTiles.filter(({ x, z }) => {
       const h = this._getHeight(x, z);
-      for (const [nx, nz] of [[x+1,z],[x,z+1],[x-1,z],[x,z-1]]) {
+      for (const [nx, nz] of [[x+1,z],[x,z+1]]) {
+        if (nx >= GW || nz >= GH) continue;
         if (!this._isWalkable(nx, nz)) continue;
         const nh = this._getHeight(nx, nz);
         const dh = Math.abs(nh - h);
@@ -575,27 +576,27 @@ export class Level0 {
 
         if (isX) {
           const verts = new Float32Array([
-            px, oh, pz, px + 2 * TILE, oNh, pz + TILE, px + 2 * TILE, oNh, pz,
-            px, oh, pz, px, oh, pz + TILE, px + 2 * TILE, oNh, pz + TILE,
+            px, oh, pz, px + TILE, oNh, pz + TILE, px + TILE, oNh, pz,
+            px, oh, pz, px, oh, pz + TILE, px + TILE, oNh, pz + TILE,
           ]);
           const g = new THREE.BufferGeometry();
           g.setAttribute('position', new THREE.BufferAttribute(verts, 3));
           g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array([
-            0, 0, 2, 1, 2, 0,
-            0, 0, 0, 1, 2, 1,
+            0, 0, 1, 1, 1, 0,
+            0, 0, 0, 1, 1, 1,
           ]), 2));
           g.computeVertexNormals();
           rampGeoms.push(g);
         } else {
           const verts = new Float32Array([
-            px, oh, pz, px + TILE, oNh, pz + 2 * TILE, px + TILE, oh, pz,
-            px, oh, pz, px, oNh, pz + 2 * TILE, px + TILE, oNh, pz + 2 * TILE,
+            px, oh, pz, px + TILE, oNh, pz + TILE, px + TILE, oh, pz,
+            px, oh, pz, px, oNh, pz + TILE, px + TILE, oNh, pz + TILE,
           ]);
           const g = new THREE.BufferGeometry();
           g.setAttribute('position', new THREE.BufferAttribute(verts, 3));
           g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array([
-            0, 0, 1, 2, 1, 0,
-            0, 0, 0, 2, 1, 2,
+            0, 0, 1, 1, 1, 0,
+            0, 0, 0, 1, 1, 1,
           ]), 2));
           g.computeVertexNormals();
           rampGeoms.push(g);
@@ -604,14 +605,14 @@ export class Level0 {
         const sw = WALL_T;
         if (isX) {
           for (const sz of [pz, pz + TILE]) {
-            const sg = new THREE.BoxGeometry(2 * TILE, absDh, sw);
-            sg.translate(px + TILE, Math.min(oh, oNh) + absDh / 2, sz);
+            const sg = new THREE.BoxGeometry(TILE, absDh, sw);
+            sg.translate(px + TILE / 2, Math.min(oh, oNh) + absDh / 2, sz);
             sideGeoms.push(sg);
           }
         } else {
           for (const sx of [px, px + TILE]) {
-            const sg = new THREE.BoxGeometry(sw, absDh, 2 * TILE);
-            sg.translate(sx, Math.min(oh, oNh) + absDh / 2, pz + TILE);
+            const sg = new THREE.BoxGeometry(sw, absDh, TILE);
+            sg.translate(sx, Math.min(oh, oNh) + absDh / 2, pz + TILE / 2);
             sideGeoms.push(sg);
           }
         }
@@ -855,20 +856,14 @@ export class Level0 {
     if (gx < 0 || gx >= GW || gz < 0 || gz >= GH) return 0;
     if (this.grid[gz][gx] === ' ') return null;
     const h = this.heightMap[gz][gx];
-    // Check for ramp: only when this tile is the LOWER side (dh > 0)
-    for (const [dx, dz] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+    for (const [dx, dz] of [[1,0],[0,1]]) {
       const nx = gx + dx, nz = gz + dz;
-      if (nx < 0 || nx >= GW || nz < 0 || nz >= GH) continue;
+      if (nx >= GW || nz >= GH) continue;
       if (this.grid[nz][nx] === ' ') continue;
       const nh = this.heightMap[nz][nx];
       const dh = nh - h;
-      if (Math.abs(dh) < 0.1 || Math.abs(dh) > 2.0 || dh < 0) continue;
-      let lerp;
-      if (dx !== 0) {
-        lerp = dx > 0 ? (wx - gx * TILE) / TILE : 1 - (wx - gx * TILE) / TILE;
-      } else {
-        lerp = dz > 0 ? (wz - gz * TILE) / TILE : 1 - (wz - gz * TILE) / TILE;
-      }
+      if (Math.abs(dh) < 0.1 || Math.abs(dh) > 2.0) continue;
+      const lerp = dx !== 0 ? (wx - gx * TILE) / TILE : (wz - gz * TILE) / TILE;
       return h + dh * Math.min(Math.max(lerp, 0), 1);
     }
     return h;
