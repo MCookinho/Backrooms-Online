@@ -2,12 +2,7 @@ import * as THREE from 'three';
 
 const TILE_SIZE = 4;
 const ROOM_HEIGHT = 3.5;
-
-const WALL_COLOR = 0xccbb77;
-const FLOOR_COLOR = 0x887744;
-const CEILING_COLOR = 0xccbb99;
-const TRIM_COLOR = 0x998855;
-const MOLD_COLOR = 0x445522;
+const WALL_THICK = 0.15;
 
 export class Level0 {
   constructor() {
@@ -18,9 +13,6 @@ export class Level0 {
     this.lights = [];
     this.rooms = [];
     this.wallBoxes = [];
-    this.wallMat = null;
-    this.floorMat = null;
-    this.ceilMat = null;
   }
 
   async load(scene) {
@@ -168,44 +160,43 @@ export class Level0 {
     const z = room.z * TILE_SIZE;
     const w = room.w * TILE_SIZE;
     const h = room.h * TILE_SIZE;
-    const y = 0;
 
     const wallMat = this._createWallMaterial();
     const floorMat = this._createFloorMaterial();
     const ceilMat = this._createCeilingMaterial();
-    const trimMat = new THREE.MeshStandardMaterial({ color: TRIM_COLOR, roughness: 0.7 });
 
-    const wallThickness = 0.15;
+    const wallH = ROOM_HEIGHT;
+    const wallY = wallH / 2;
 
-    const wallH = ROOM_HEIGHT - 0.2;
-    const wallY = 0.1 + wallH / 2;
-
-    const createWallSegment = (cx, cz, segW, segH, ry) => {
+    const createWallSegment = (cx, cz, segW) => {
       if (segW <= 0) return;
-      const mesh = new THREE.Mesh(new THREE.BoxGeometry(segW, segH, wallThickness), wallMat);
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(segW, wallH, WALL_THICK), wallMat);
       mesh.position.set(cx, wallY, cz);
-      mesh.rotation.y = ry;
+      mesh.rotation.y = 0;
       this.object3d.add(mesh);
       mesh.updateMatrixWorld(true);
-      const box = new THREE.Box3().setFromObject(mesh);
-      this.wallBoxes.push(box);
+      this.wallBoxes.push(new THREE.Box3().setFromObject(mesh));
       return mesh;
     };
 
-    const doorH = 2.2;
+    const createWallSegmentRotated = (cx, cz, segW) => {
+      if (segW <= 0) return;
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(segW, wallH, WALL_THICK), wallMat);
+      mesh.position.set(cx, wallY, cz);
+      mesh.rotation.y = Math.PI / 2;
+      this.object3d.add(mesh);
+      mesh.updateMatrixWorld(true);
+      this.wallBoxes.push(new THREE.Box3().setFromObject(mesh));
+      return mesh;
+    };
+
     const doorW = 0.9;
 
-    const inset = 0.01;
-    const sides = [
-      { dir: 'front', cx: x + w / 2, cz: z + inset, len: w, ry: 0 },
-      { dir: 'back', cx: x + w / 2, cz: z + h - inset, len: w, ry: 0 },
-      { dir: 'left', cx: x + inset, cz: z + h / 2, len: h, ry: Math.PI / 2 },
-      { dir: 'right', cx: x + w - inset, cz: z + h / 2, len: h, ry: Math.PI / 2 },
-    ];
+    const hasDoor = { front: false, back: false, left: false, right: false };
+    const isConnected = { front: false, back: false, left: false, right: false };
 
-    const hasConnection = { front: false, back: false, left: false, right: false };
     for (const connIdx of room.connections) {
-      const conn = this._findRoomByIndex(connIdx);
+      const conn = this.rooms[connIdx];
       if (!conn) continue;
       const dx = conn.x - room.x;
       const dz = conn.z - room.z;
@@ -214,150 +205,86 @@ export class Level0 {
       else if (dz < 0) side = 'front';
       else if (dx > 0) side = 'right';
       else if (dx < 0) side = 'left';
-
-      if (side && roomIndex < connIdx) {
-        hasConnection[side] = true;
+      if (!side) continue;
+      isConnected[side] = true;
+      if (roomIndex < connIdx) {
+        hasDoor[side] = true;
       }
     }
+
+    const halfT = WALL_THICK / 2;
+
+    const sideW = (side) => {
+      return side.dir === 'front' || side.dir === 'back' ? w : h;
+    };
+
+    const sides = [
+      { dir: 'front', cx: x + w / 2, cz: z + halfT, ry: 0 },
+      { dir: 'back', cx: x + w / 2, cz: z + h - halfT, ry: 0 },
+      { dir: 'left', cx: x + halfT, cz: z + h / 2, ry: Math.PI / 2 },
+      { dir: 'right', cx: x + w - halfT, cz: z + h / 2, ry: Math.PI / 2 },
+    ];
 
     for (const side of sides) {
-      if (hasConnection[side.dir]) {
-        const seg1Len = (side.len - doorW) / 2;
-        const seg2Len = (side.len - doorW) / 2;
-        const doorCenter = side.cx;
-        const doorCenterZ = side.cz;
+      if (isConnected[side.dir] && !hasDoor[side.dir]) {
+        continue;
+      }
+
+      if (hasDoor[side.dir]) {
+        const len = sideW(side);
+        const segLen = (len - doorW) / 2;
+        if (segLen <= 0) continue;
 
         if (side.ry === 0) {
-          const s1cx = side.cx - seg1Len / 2 - doorW / 4;
-          const s1cz = side.cz;
-          createWallSegment(s1cx, s1cz, seg1Len + doorW / 2, wallH, side.ry);
-          const s2cx = side.cx + seg1Len / 2 + doorW / 4 + doorW / 2;
-          const s2cz = side.cz;
-          createWallSegment(s2cx, s2cz, seg2Len + doorW / 2, wallH, side.ry);
+          createWallSegment(side.cx - len / 2 + segLen / 2, side.cz, segLen);
+          createWallSegment(side.cx + len / 2 - segLen / 2, side.cz, segLen);
         } else {
-          const s1cx = side.cx;
-          const s1cz = side.cz - seg1Len / 2 - doorW / 4;
-          createWallSegment(s1cx, s1cz, wallH, seg1Len + doorW / 2, side.ry);
-          const s2cx = side.cx;
-          const s2cz = side.cz + seg1Len / 2 + doorW / 4 + doorW / 2;
-          createWallSegment(s2cx, s2cz, wallH, seg2Len + doorW / 2, side.ry);
+          createWallSegmentRotated(side.cx, side.cz - len / 2 + segLen / 2, segLen);
+          createWallSegmentRotated(side.cx, side.cz + len / 2 - segLen / 2, segLen);
         }
 
-        this._createDoorFrame(doorCenter, doorCenterZ, side.ry, doorH, doorW);
+        this._createDoorFrame(side.cx, side.cz, side.ry);
       } else {
-        createWallSegment(side.cx, side.cz, side.len, wallH, side.ry);
+        if (side.ry === 0) {
+          createWallSegment(side.cx, side.cz, sideW(side));
+        } else {
+          createWallSegmentRotated(side.cx, side.cz, sideW(side));
+        }
       }
     }
 
-    const createFloor = () => {
-      const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, 0.1, h), floorMat);
-      mesh.position.set(x, y, z);
-      this.object3d.add(mesh);
-      return mesh;
-    };
+    const floor = new THREE.Mesh(new THREE.BoxGeometry(w, 0.2, h), floorMat);
+    floor.position.set(x + w / 2, -0.1, z + h / 2);
+    this.object3d.add(floor);
 
-    const createCeiling = () => {
-      const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, 0.1, h), ceilMat);
-      mesh.position.set(x, y + ROOM_HEIGHT, z);
-      this.object3d.add(mesh);
-      return mesh;
-    };
-
-    createFloor();
-    createCeiling();
-
-    this._createWallpaperDetails(x, z, w, h);
-    this._addMoldDetails(x, z, w, h);
+    const ceil = new THREE.Mesh(new THREE.BoxGeometry(w, 0.1, h), ceilMat);
+    ceil.position.set(x + w / 2, ROOM_HEIGHT, z + h / 2);
+    this.object3d.add(ceil);
   }
 
-  _createDoorFrame(x, z, ry, doorH, doorW) {
-    const doorFrameMat = new THREE.MeshStandardMaterial({ color: 0x554422, roughness: 0.8 });
+  _createDoorFrame(x, z, ry) {
+    const mat = new THREE.MeshStandardMaterial({ color: 0x554422, roughness: 0.8 });
+    const doorH = 2.2;
+    const doorW = 0.9;
     const thick = 0.08;
+    const inset = 0.02;
 
-    const frameBottom = new THREE.Mesh(new THREE.BoxGeometry(doorW + 0.2, thick, 0.12), doorFrameMat);
-    frameBottom.position.set(x, 0.05, z);
-    frameBottom.rotation.y = ry;
-    this.object3d.add(frameBottom);
+    const top = new THREE.Mesh(new THREE.BoxGeometry(doorW + 0.2, thick, 0.1), mat);
+    top.position.set(x, doorH + inset, z);
+    top.rotation.y = ry;
+    this.object3d.add(top);
 
-    const frameTop = new THREE.Mesh(new THREE.BoxGeometry(doorW + 0.2, thick, 0.12), doorFrameMat);
-    frameTop.position.set(x, doorH + 0.04, z);
-    frameTop.rotation.y = ry;
-    this.object3d.add(frameTop);
-
-    const offset = doorW / 2 + 0.07;
+    const offset = doorW / 2 + 0.06;
     const cos = Math.cos(ry);
     const sin = Math.sin(ry);
 
-    const frameLeft = new THREE.Mesh(new THREE.BoxGeometry(thick, doorH, 0.12), doorFrameMat);
-    frameLeft.position.set(x - cos * offset, doorH / 2, z - sin * offset);
-    this.object3d.add(frameLeft);
+    const left = new THREE.Mesh(new THREE.BoxGeometry(thick, doorH, 0.1), mat);
+    left.position.set(x - cos * offset, doorH / 2 + inset, z - sin * offset);
+    this.object3d.add(left);
 
-    const frameRight = new THREE.Mesh(new THREE.BoxGeometry(thick, doorH, 0.12), doorFrameMat);
-    frameRight.position.set(x + cos * offset, doorH / 2, z + sin * offset);
-    this.object3d.add(frameRight);
-  }
-
-
-
-  _createWallpaperDetails(x, z, w, h) {
-    const detailGroup = new THREE.Group();
-
-    const linesMat = new THREE.MeshBasicMaterial({
-      color: 0xbbaa66,
-      transparent: true,
-      opacity: 0.15,
-    });
-
-    const lineCount = Math.floor(Math.random() * 6) + 3;
-    for (let i = 0; i < lineCount; i++) {
-      const lx = x + Math.random() * w;
-      const lz = z + Math.random() * h;
-      const line = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.02, 0.5 + Math.random() * 0.5),
-        linesMat
-      );
-      line.position.set(lx, 1.5 + Math.random() * 1.5, lz);
-      line.rotation.x = Math.random() * Math.PI;
-      this.object3d.add(line);
-    }
-
-    const stainMat = new THREE.MeshBasicMaterial({
-      color: 0x665533,
-      transparent: true,
-      opacity: 0.1 + Math.random() * 0.15,
-    });
-
-    for (let i = 0; i < 3; i++) {
-      const sx = x + Math.random() * w;
-      const sz = z + Math.random() * h;
-      const stain = new THREE.Mesh(
-        new THREE.CircleGeometry(0.1 + Math.random() * 0.3, 8),
-        stainMat
-      );
-      stain.position.set(sx, 0.5 + Math.random() * 2.5, sz);
-      stain.rotation.x = -Math.PI / 2;
-      this.object3d.add(stain);
-    }
-  }
-
-  _addMoldDetails(x, z, w, h) {
-    const moldMat = new THREE.MeshBasicMaterial({
-      color: MOLD_COLOR,
-      transparent: true,
-      opacity: 0.3,
-    });
-
-    for (let i = 0; i < 4; i++) {
-      const mx = x + Math.random() * w;
-      const mz = z + Math.random() * h;
-      const mold = new THREE.Mesh(
-        new THREE.CircleGeometry(0.05 + Math.random() * 0.2, 6),
-        moldMat
-      );
-      mold.position.set(mx, 0.05, mz);
-      mold.rotation.x = -Math.PI / 2;
-      this.object3d.add(mold);
-    }
+    const right = new THREE.Mesh(new THREE.BoxGeometry(thick, doorH, 0.1), mat);
+    right.position.set(x + cos * offset, doorH / 2 + inset, z + sin * offset);
+    this.object3d.add(right);
   }
 
   _createFluorescentLights(layout) {
@@ -367,11 +294,13 @@ export class Level0 {
       roughnessMap: this.textures.lightRough,
       roughness: 0.6,
       metalness: 0.3,
+      color: 0xcccccc,
     });
     const bulbMat = new THREE.MeshStandardMaterial({
       map: this.textures.lightEmit,
       emissive: 0xffffaa,
       emissiveIntensity: 0.5,
+      color: 0xffffaa,
     });
 
     for (const room of layout) {
@@ -380,13 +309,13 @@ export class Level0 {
       const w = room.w * TILE_SIZE;
       const h = room.h * TILE_SIZE;
 
-      const numLightsX = Math.max(1, Math.floor(w / TILE_SIZE));
-      const numLightsZ = Math.max(1, Math.floor(h / TILE_SIZE));
+      const numX = Math.max(1, Math.floor(w / TILE_SIZE));
+      const numZ = Math.max(1, Math.floor(h / TILE_SIZE));
 
-      for (let lx = 0; lx < numLightsX; lx++) {
-        for (let lz = 0; lz < numLightsZ; lz++) {
-          const px = x + (lx + 0.5) * (w / numLightsX);
-          const pz = z + (lz + 0.5) * (h / numLightsZ);
+      for (let lx = 0; lx < numX; lx++) {
+        for (let lz = 0; lz < numZ; lz++) {
+          const px = x + (lx + 0.5) * (w / numX);
+          const pz = z + (lz + 0.5) * (h / numZ);
 
           const fixture = new THREE.Mesh(
             new THREE.BoxGeometry(0.8, 0.05, 0.2),
@@ -407,9 +336,11 @@ export class Level0 {
           this.object3d.add(pl);
           this.lights.push(pl);
 
-          const buzzRange = 0.95 + Math.random() * 0.1;
-          const flickerDelay = Math.random() * 10;
-          pl.userData = { buzzRange, flickerDelay, timer: 0 };
+          pl.userData = {
+            buzzRange: 0.95 + Math.random() * 0.1,
+            flickerDelay: Math.random() * 10,
+            timer: 0,
+          };
         }
       }
     }
@@ -433,17 +364,15 @@ export class Level0 {
       for (let i = 0; i < numProps; i++) {
         const px = x + 0.5 + Math.random() * (w - 1);
         const pz = z + 0.5 + Math.random() * (h - 1);
-        propPositions.push({ x: px, z: pz, roomX: x, roomZ: z });
+        propPositions.push({ x: px, z: pz });
       }
     }
 
     for (const pos of propPositions) {
       if (Math.random() > 0.5) {
-        const chair = this._createChair(pos.x, pos.z);
-        this.object3d.add(chair);
+        this.object3d.add(this._createChair(pos.x, pos.z));
       } else {
-        const desk = this._createDesk(pos.x, pos.z);
-        this.object3d.add(desk);
+        this.object3d.add(this._createDesk(pos.x, pos.z));
       }
     }
 
@@ -452,20 +381,20 @@ export class Level0 {
 
   _createChair(x, z) {
     const group = new THREE.Group();
-    const chairMat = new THREE.MeshStandardMaterial({ color: 0x554433, roughness: 0.8 });
-    const metalMat = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.6, metalness: 0.5 });
+    const mat = new THREE.MeshStandardMaterial({ color: 0x554433, roughness: 0.8 });
+    const metal = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.6, metalness: 0.5 });
 
-    const seat = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.08, 0.5), chairMat);
+    const seat = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.08, 0.5), mat);
     seat.position.set(0, 0.5, 0);
     group.add(seat);
 
-    const back = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.4, 0.05), chairMat);
+    const back = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.4, 0.05), mat);
     back.position.set(0, 0.75, -0.25);
     group.add(back);
 
-    for (let lx of [-0.2, 0.2]) {
-      for (let lz of [-0.2, 0.2]) {
-        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.45, 6), metalMat);
+    for (const lx of [-0.2, 0.2]) {
+      for (const lz of [-0.2, 0.2]) {
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.45, 6), metal);
         leg.position.set(lx, 0.225, lz);
         group.add(leg);
       }
@@ -477,14 +406,14 @@ export class Level0 {
 
   _createDesk(x, z) {
     const group = new THREE.Group();
-    const deskMat = new THREE.MeshStandardMaterial({ color: 0x665544, roughness: 0.9 });
+    const mat = new THREE.MeshStandardMaterial({ color: 0x665544, roughness: 0.9 });
 
-    const top = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.6), deskMat);
+    const top = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.6), mat);
     top.position.set(0, 0.75, 0);
     group.add(top);
 
-    for (let lx of [-0.55, 0.55]) {
-      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.72, 6), deskMat);
+    for (const lx of [-0.55, 0.55]) {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.72, 6), mat);
       leg.position.set(lx, 0.36, 0);
       group.add(leg);
     }
@@ -628,16 +557,12 @@ export class Level0 {
     });
   }
 
-  _findRoomByIndex(index) {
-    return this.rooms[index];
-  }
-
   _createWallMaterial() {
     return new THREE.MeshStandardMaterial({
       map: this.textures.wallDiff,
       normalMap: this.textures.wallNor,
       roughness: 0.85,
-      color: 0xffffff,
+      color: 0xccbb77,
     });
   }
 
@@ -646,6 +571,7 @@ export class Level0 {
       map: this.textures.floorDiff,
       normalMap: this.textures.floorNor,
       roughness: 0.95,
+      color: 0x887744,
     });
   }
 
@@ -655,6 +581,7 @@ export class Level0 {
       normalMap: this.textures.ceilNor,
       roughnessMap: this.textures.ceilRough,
       roughness: 0.9,
+      color: 0xccbb99,
     });
   }
 
@@ -662,7 +589,7 @@ export class Level0 {
     return this.wallBoxes;
   }
 
-  update(delta, player) {
+  update(delta) {
     for (const light of this.lights) {
       light.userData.timer += delta;
       const flicker = Math.sin(light.userData.timer * light.userData.buzzRange * 3);
