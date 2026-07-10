@@ -544,7 +544,7 @@ export class Level0 {
   _buildRamps() {
     const rampMat = _makeMat('ramp', {
       map: this.textures.floorDiff, normalMap: this.textures.floorNorm,
-      roughness: 0.9,
+      roughness: 0.9, side: THREE.DoubleSide,
     });
     const sideMat = _makeMat('rampSide', {
       map: this.textures.wallDiff, normalMap: this.textures.wallNor,
@@ -555,21 +555,28 @@ export class Level0 {
 
     for (const { x, z } of this._walkableTiles) {
       const h = this._getHeight(x, z);
-      for (const [nx, nz] of [[x + 1, z], [x, z + 1]]) {
+      for (const [nx, nz] of [[x + 1, z], [x, z + 1], [x - 1, z], [x, z - 1]]) {
+        if (nx < 0 || nx >= GW || nz < 0 || nz >= GH) continue;
         if (!this._isWalkable(nx, nz)) continue;
         const nh = this._getHeight(nx, nz);
         const dh = nh - h;
         if (Math.abs(dh) < 0.1 || Math.abs(dh) > 2.0) continue;
-        if (dh < 0) continue; // process from the lower tile
 
+        // Origin = leftmost (X) or bottommost (Z) tile → each pair processed once
         const isX = nx !== x;
-        const px = x * TILE, pz = z * TILE;
+        const ox = isX ? Math.min(x, nx) : x;
+        const oz = isX ? z : Math.min(z, nz);
+        if (x !== ox || z !== oz) continue;
 
-        // Surface spans BOTH tiles (low + high) so the high tile isn't left bare
+        const px = ox * TILE, pz = oz * TILE;
+        const oh = this._getHeight(ox, oz);
+        const oNh = isX ? this._getHeight(ox + 1, oz) : this._getHeight(ox, oz + 1);
+        const absDh = Math.abs(oNh - oh);
+
         if (isX) {
           const verts = new Float32Array([
-            px, h, pz, px + 2 * TILE, nh, pz + TILE, px + 2 * TILE, nh, pz,
-            px, h, pz, px, h, pz + TILE, px + 2 * TILE, nh, pz + TILE,
+            px, oh, pz, px + 2 * TILE, oNh, pz + TILE, px + 2 * TILE, oNh, pz,
+            px, oh, pz, px, oh, pz + TILE, px + 2 * TILE, oNh, pz + TILE,
           ]);
           const g = new THREE.BufferGeometry();
           g.setAttribute('position', new THREE.BufferAttribute(verts, 3));
@@ -581,8 +588,8 @@ export class Level0 {
           rampGeoms.push(g);
         } else {
           const verts = new Float32Array([
-            px, h, pz, px + TILE, nh, pz + 2 * TILE, px + TILE, h, pz,
-            px, h, pz, px, nh, pz + 2 * TILE, px + TILE, nh, pz + 2 * TILE,
+            px, oh, pz, px + TILE, oNh, pz + 2 * TILE, px + TILE, oh, pz,
+            px, oh, pz, px, oNh, pz + 2 * TILE, px + TILE, oNh, pz + 2 * TILE,
           ]);
           const g = new THREE.BufferGeometry();
           g.setAttribute('position', new THREE.BufferAttribute(verts, 3));
@@ -597,14 +604,14 @@ export class Level0 {
         const sw = WALL_T;
         if (isX) {
           for (const sz of [pz, pz + TILE]) {
-            const sg = new THREE.BoxGeometry(2 * TILE, dh, sw);
-            sg.translate(px + TILE, h + dh / 2, sz);
+            const sg = new THREE.BoxGeometry(2 * TILE, absDh, sw);
+            sg.translate(px + TILE, Math.min(oh, oNh) + absDh / 2, sz);
             sideGeoms.push(sg);
           }
         } else {
           for (const sx of [px, px + TILE]) {
-            const sg = new THREE.BoxGeometry(sw, dh, 2 * TILE);
-            sg.translate(sx, h + dh / 2, pz + TILE);
+            const sg = new THREE.BoxGeometry(sw, absDh, 2 * TILE);
+            sg.translate(sx, Math.min(oh, oNh) + absDh / 2, pz + TILE);
             sideGeoms.push(sg);
           }
         }
